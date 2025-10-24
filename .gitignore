@@ -1,40 +1,104 @@
-{
-  "rules": {
-    "songs": {
-      ".read": true,
-      ".write": false,
-      ".indexOn": ["title", "artist"]
-    },
-    "requests": {
-      ".read": true,
-      ".write": true,
-      "$requestId": {
-        ".validate": "newData.hasChildren(['songId', 'songTitle', 'timestamp', 'paymentMethod', 'status']) && newData.child('timestamp').isNumber() && newData.child('status').isString()"
-      }
-    },
-    "settings": {
-      ".read": true,
-      ".write": false
-    },
-    "playedHistory": {
-      ".read": true,
-      ".write": false
-    }
-  }
-}
+# .gitignore for React Native Jukebox Apps
 
-// EXPLANATION OF RULES:
-// ======================
+# ==========================================
+# CRITICAL: Firebase Configuration
+# ==========================================
+# NEVER commit your actual Firebase keys!
+firebaseConfig.js
+.env
+.env.local
+.env.production
 
-// "songs": 
-//   - Anyone can READ (customers need to see song list)
-//   - NO ONE can WRITE from apps (you manually add songs in Firebase Console)
-//   - This prevents customers from adding fake songs
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
 
-// "requests":
-//   - Anyone can READ (all apps need to see the queue)
-//   - Anyone can WRITE (customers submit requests)
-//   - Validation ensures requests have required fields
+# ==========================================
+# React Native / Expo
+# ==========================================
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# ==========================================
+# iOS
+# ==========================================
+ios/Pods/
+ios/build/
+*.xcworkspace
+*.xcuserstate
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ==========================================
+# Android
+# ==========================================
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+local.properties
+*.jks
+*.keystore
+
+# ==========================================
+# macOS
+# ==========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ==========================================
+# Windows
+# ==========================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ==========================================
+# Linux
+# ==========================================
+*~
+
+# ==========================================
+# IDEs and Editors
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.log
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# Testing
+# ==========================================
+coverage/
+.nyc_output/
+
+# ==========================================
+# Temporary files
+# ==========================================
+*.tmp
+*.temp
+.cache///   - Validation ensures requests have required fields
 //   - This allows the app to function but validates data structure
 
 // "settings":
