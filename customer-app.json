@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Band Jukebox",
+    "slug": "band-jukebox-customer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#8B4513"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourband.jukebox.customer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#8B4513"
+      },
+      "package": "com.yourband.jukebox.customer"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
