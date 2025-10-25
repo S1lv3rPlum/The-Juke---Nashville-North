@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "songs": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["title", "artist"]
+    },
+    "requests": {
+      ".read": true,
+      ".write": true,
+      "$requestId": {
+        ".validate": "newData.hasChildren(['songId', 'songTitle', 'timestamp', 'paymentMethod', 'status']) && newData.child('timestamp').isNumber() && newData.child('status').isString()"
+      }
+    },
+    "settings": {
+      ".read": true,
+      ".write": true
+    },
+    "playedHistory": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
