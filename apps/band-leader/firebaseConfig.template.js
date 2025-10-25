@@ -8,14 +8,16 @@ import { getDatabase } from 'firebase/database';
 // Replace these with your actual Firebase configuration values
 // Get these from: Firebase Console → Project Settings → Your Apps → Web App
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef123456"
+  apiKey: "AlzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
+  authDomain: "the-juke---nashville.firebaseapp.com",
+  databaseURL: "https://console.firebase.google.com/u/3/project/the-juke---nashville/database/the-juke---nashville-default-rtdb/data/~2F",
+  projectId: "the-juke---nashville",
+  storageBucket: "the-juke---nashville.firebasestorage.com",
+  messagingSenderId: "850520994035",
+  appId: "1:850520994035:web:e311969207eb4ec7b1c786"
+  measurementId: "G-DBTJJR3C1"
 };
+
 
 const app = initializeApp(firebaseConfig);
 export const database = getDatabase(app);
