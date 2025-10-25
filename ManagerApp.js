@@ -12,15 +12,29 @@ import {
   ScrollView
 } from 'react-native';
 import { database } from './firebaseConfig';
-import { ref, onValue, update, remove } from 'firebase/database';
+import { ref, onValue, update, remove, push, set } from 'firebase/database';
 
 export default function ManagerApp() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [confirmedRequests, setConfirmedRequests] = useState([]);
+  const [songs, setSongs] = useState([]);
   const [settings, setSettings] = useState({});
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [songModalVisible, setSongModalVisible] = useState(false);
+  const [editSongModalVisible, setEditSongModalVisible] = useState(false);
   const [newPriorityPrice, setNewPriorityPrice] = useState('');
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'confirmed'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'songs'
+  
+  // New song form
+  const [newSongTitle, setNewSongTitle] = useState('');
+  const [newSongArtist, setNewSongArtist] = useState('');
+  const [newSongPrice, setNewSongPrice] = useState('5');
+  
+  // Edit song
+  const [editingSong, setEditingSong] = useState(null);
+  const [editSongTitle, setEditSongTitle] = useState('');
+  const [editSongArtist, setEditSongArtist] = useState('');
+  const [editSongPrice, setEditSongPrice] = useState('');
 
   useEffect(() => {
     // Load all requests
@@ -30,7 +44,6 @@ export default function ManagerApp() {
       if (data) {
         const allRequests = Object.values(data);
         
-        // Separate pending and confirmed
         const pending = allRequests
           .filter(req => req.status === 'pending')
           .sort((a, b) => {
@@ -52,6 +65,20 @@ export default function ManagerApp() {
       } else {
         setPendingRequests([]);
         setConfirmedRequests([]);
+      }
+    });
+
+    // Load songs
+    const songsRef = ref(database, 'songs');
+    onValue(songsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const songList = Object.values(data).sort((a, b) => 
+          a.title.localeCompare(b.title)
+        );
+        setSongs(songList);
+      } else {
+        setSongs([]);
       }
     });
 
@@ -157,6 +184,101 @@ export default function ManagerApp() {
     }
   };
 
+  const addSong = async () => {
+    if (!newSongTitle.trim() || !newSongArtist.trim()) {
+      Alert.alert('Missing Info', 'Please enter both title and artist.');
+      return;
+    }
+
+    const price = parseFloat(newSongPrice);
+    if (isNaN(price) || price < 0) {
+      Alert.alert('Invalid Price', 'Please enter a valid price.');
+      return;
+    }
+
+    try {
+      const songsRef = ref(database, 'songs');
+      const newSongRef = push(songsRef);
+      
+      await set(newSongRef, {
+        id: newSongRef.key,
+        title: newSongTitle.trim(),
+        artist: newSongArtist.trim(),
+        price: price
+      });
+
+      Alert.alert('Success', 'Song added to catalog!');
+      setNewSongTitle('');
+      setNewSongArtist('');
+      setNewSongPrice('5');
+      setSongModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add song.');
+      console.error(error);
+    }
+  };
+
+  const openEditSong = (song) => {
+    setEditingSong(song);
+    setEditSongTitle(song.title);
+    setEditSongArtist(song.artist);
+    setEditSongPrice(song.price.toString());
+    setEditSongModalVisible(true);
+  };
+
+  const updateSong = async () => {
+    if (!editSongTitle.trim() || !editSongArtist.trim()) {
+      Alert.alert('Missing Info', 'Please enter both title and artist.');
+      return;
+    }
+
+    const price = parseFloat(editSongPrice);
+    if (isNaN(price) || price < 0) {
+      Alert.alert('Invalid Price', 'Please enter a valid price.');
+      return;
+    }
+
+    try {
+      const songRef = ref(database, `songs/${editingSong.id}`);
+      await update(songRef, {
+        title: editSongTitle.trim(),
+        artist: editSongArtist.trim(),
+        price: price
+      });
+
+      Alert.alert('Success', 'Song updated!');
+      setEditSongModalVisible(false);
+      setEditingSong(null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update song.');
+      console.error(error);
+    }
+  };
+
+  const deleteSong = async (song) => {
+    Alert.alert(
+      'Delete Song',
+      `Remove "${song.title}" from catalog?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const songRef = ref(database, `songs/${song.id}`);
+              await remove(songRef);
+              Alert.alert('Success', 'Song removed from catalog.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete song.');
+              console.error(error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderPendingRequest = ({ item }) => (
     <View style={styles.requestCard}>
       <View style={styles.requestHeader}>
@@ -239,6 +361,34 @@ export default function ManagerApp() {
     </View>
   );
 
+  const renderSongItem = ({ item }) => (
+    <View style={styles.songCard}>
+      <View style={styles.songCardHeader}>
+        <View style={styles.songCardInfo}>
+          <Text style={styles.songCardTitle}>{item.title}</Text>
+          <Text style={styles.songCardArtist}>{item.artist}</Text>
+        </View>
+        <Text style={styles.songCardPrice}>${item.price}</Text>
+      </View>
+      
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.button, styles.editButton]}
+          onPress={() => openEditSong(item)}
+        >
+          <Text style={styles.buttonText}>✎ Edit</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, styles.deleteButton]}
+          onPress={() => deleteSong(item)}
+        >
+          <Text style={styles.buttonText}>✕ Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -270,10 +420,19 @@ export default function ManagerApp() {
             Confirmed ({confirmedRequests.length})
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'songs' && styles.activeTab]}
+          onPress={() => setActiveTab('songs')}
+        >
+          <Text style={[styles.tabText, activeTab === 'songs' && styles.activeTabText]}>
+            Songs ({songs.length})
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Request Lists */}
-      {activeTab === 'pending' ? (
+      {/* Content based on active tab */}
+      {activeTab === 'pending' && (
         <FlatList
           data={pendingRequests}
           renderItem={renderPendingRequest}
@@ -283,7 +442,9 @@ export default function ManagerApp() {
             <Text style={styles.emptyText}>No pending requests</Text>
           }
         />
-      ) : (
+      )}
+
+      {activeTab === 'confirmed' && (
         <FlatList
           data={confirmedRequests}
           renderItem={renderConfirmedRequest}
@@ -293,6 +454,27 @@ export default function ManagerApp() {
             <Text style={styles.emptyText}>No confirmed requests</Text>
           }
         />
+      )}
+
+      {activeTab === 'songs' && (
+        <>
+          <TouchableOpacity
+            style={styles.addSongButton}
+            onPress={() => setSongModalVisible(true)}
+          >
+            <Text style={styles.addSongButtonText}>+ Add New Song</Text>
+          </TouchableOpacity>
+          
+          <FlatList
+            data={songs}
+            renderItem={renderSongItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No songs in catalog</Text>
+            }
+          />
+        </>
       )}
 
       {/* Settings Modal */}
@@ -327,6 +509,106 @@ export default function ManagerApp() {
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setSettingsModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Song Modal */}
+      <Modal
+        visible={songModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSongModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Song</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Song Title"
+              value={newSongTitle}
+              onChangeText={setNewSongTitle}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Artist Name"
+              value={newSongArtist}
+              onChangeText={setNewSongArtist}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Price"
+              value={newSongPrice}
+              onChangeText={setNewSongPrice}
+              keyboardType="numeric"
+            />
+
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={addSong}
+            >
+              <Text style={styles.buttonText}>Add Song</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setSongModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Song Modal */}
+      <Modal
+        visible={editSongModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditSongModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Song</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Song Title"
+              value={editSongTitle}
+              onChangeText={setEditSongTitle}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Artist Name"
+              value={editSongArtist}
+              onChangeText={setEditSongArtist}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Price"
+              value={editSongPrice}
+              onChangeText={setEditSongPrice}
+              keyboardType="numeric"
+            />
+
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={updateSong}
+            >
+              <Text style={styles.buttonText}>Update Song</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setEditSongModalVisible(false)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -379,7 +661,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: '#aaa',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   activeTabText: {
@@ -468,6 +750,9 @@ const styles = StyleSheet.create({
   playedButton: {
     backgroundColor: '#9C27B0',
   },
+  editButton: {
+    backgroundColor: '#2196F3',
+  },
   deleteButton: {
     backgroundColor: '#f44336',
     flex: 0.3,
@@ -476,6 +761,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  addSongButton: {
+    backgroundColor: '#4CAF50',
+    margin: 15,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  addSongButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  songCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  songCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  songCardInfo: {
+    flex: 1,
+  },
+  songCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  songCardArtist: {
+    fontSize: 14,
+    color: '#aaa',
+  },
+  songCardPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
   },
   emptyText: {
     textAlign: 'center',
@@ -510,6 +839,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
     color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    fontSize: 16,
+    backgroundColor: '#f5f5f5',
   },
   priceInput: {
     borderWidth: 1,
