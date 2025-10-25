@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Band Leader",
+    "slug": "band-jukebox-leader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#9C27B0"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourband.jukebox.leader"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#9C27B0"
+      },
+      "package": "com.yourband.jukebox.leader"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
