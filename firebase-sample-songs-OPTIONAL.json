@@ -1,0 +1,82 @@
+{
+  "songs": {
+    "song_001": {
+      "id": "song_001",
+      "title": "Boot Scootin' Boogie",
+      "artist": "Brooks & Dunn",
+      "price": 5
+    },
+    "song_002": {
+      "id": "song_002",
+      "title": "Achy Breaky Heart",
+      "artist": "Billy Ray Cyrus",
+      "price": 5
+    },
+    "song_003": {
+      "id": "song_003",
+      "title": "Copperhead Road",
+      "artist": "Steve Earle",
+      "price": 5
+    },
+    "song_004": {
+      "id": "song_004",
+      "title": "Friends in Low Places",
+      "artist": "Garth Brooks",
+      "price": 5
+    },
+    "song_005": {
+      "id": "song_005",
+      "title": "Chattahoochee",
+      "artist": "Alan Jackson",
+      "price": 5
+    },
+    "song_006": {
+      "id": "song_006",
+      "title": "Watermelon Crawl",
+      "artist": "Tracy Byrd",
+      "price": 5
+    },
+    "song_007": {
+      "id": "song_007",
+      "title": "Cotton Eye Joe",
+      "artist": "Rednex",
+      "price": 5
+    },
+    "song_008": {
+      "id": "song_008",
+      "title": "Wagon Wheel",
+      "artist": "Darius Rucker",
+      "price": 5
+    },
+    "song_009": {
+      "id": "song_009",
+      "title": "Sweet Home Alabama",
+      "artist": "Lynyrd Skynyrd",
+      "price": 5
+    },
+    "song_010": {
+      "id": "song_010",
+      "title": "Footloose",
+      "artist": "Kenny Loggins",
+      "price": 5
+    }
+  }
+}
+
+// OPTIONAL: Sample Country/Line Dancing Songs
+// 
+// This file contains 10 popular country/line dancing songs as examples.
+// 
+// To use these:
+// 1. Go to Firebase Console → Realtime Database
+// 2. Click on "songs" node
+// 3. Click the ⋮ (three dots) menu → Import JSON
+// 4. Paste the content of this file
+// 5. These songs will appear in all apps immediately
+//
+// You can then:
+// - Delete any songs you don't want (use Manager App "Songs" tab)
+// - Edit song details (title, artist, price)
+// - Add more songs using the Manager App
+//
+// OR just ignore this file and add all songs manually in the Manager App!
