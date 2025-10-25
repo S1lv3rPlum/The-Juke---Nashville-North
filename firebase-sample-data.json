@@ -1,0 +1,40 @@
+"song_016": {
+      "id": "song_016",
+      "title": "My Maria",
+      "artist": "Brooks & Dunn",
+      "price": 5
+    },
+    "song_017": {
+      "id": "song_017",
+      "title": "God Blessed Texas",
+      "artist": "Little Texas",
+      "price": 5
+    },
+    "song_018": {
+      "id": "song_018",
+      "title": "She Thinks My Tractor's Sexy",
+      "artist": "Kenny Chesney",
+      "price": 5
+    },
+    "song_019": {
+      "id": "song_019",
+      "title": "It's Five O'Clock Somewhere",
+      "artist": "Alan Jackson & Jimmy Buffett",
+      "price": 5
+    },
+    "song_020": {
+      "id": "song_020",
+      "title": "Cruise",
+      "artist": "Florida Georgia Line",
+      "price": 5
+    }
+  },
+  "settings": {
+    "priorityBoostPrice": 10,
+    "venmoUsername": "YourBandVenmo",
+    "venmoQRCode": "https://placeholder-qr-code.com/image.png",
+    "bandName": "The Country Stars"
+  },
+  "requests": {},
+  "playedHistory": {}
+}
