@@ -1,11 +1,8 @@
-// firebaseConfig.template.js
-// This is a TEMPLATE file - safe to commit to GitHub
-// Copy this file to 'firebaseConfig.js' and add your actual Firebase credentials
+//copied from firebaseConfig.template.js
 
 import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
-// Replace these with your actual Firebase configuration values
 // Get these from: Firebase Console → Project Settings → Your Apps → Web App
 const firebaseConfig = {
   apiKey: "AlzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
