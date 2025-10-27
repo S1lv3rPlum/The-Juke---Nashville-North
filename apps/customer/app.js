@@ -1,487 +1,154 @@
-// CustomerApp.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  TextInput,
-  Modal,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Linking,
   Image,
-  Dimensions,
-  SafeAreaView
+  Modal,
+  Linking,
+  StyleSheet,
 } from 'react-native';
+import { ref, onValue, push } from 'firebase/database';
 import { database } from './firebaseConfig';
-import { ref, onValue, push, set, get } from 'firebase/database';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-//
-// Responsive Header component (uses settings.logoUrl from your realtime DB settings node)
-// - centered always
-// - scales to screen width while preserving aspect ratio
-// - caps max height so it doesn't dominate tablets
-//
-function Header({ bandName, logoUrl, queueCount, onQueuePress }) {
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
-  const [logoHeight, setLogoHeight] = useState(0);
+const BAND_LOGO =
+  'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop,q=95/A0xwVVE355TJNvWo/img_9794-dJo6461XeNIkQwnN.jpg';
 
-  // tweak these to taste
-  const LOGO_WIDTH_RATIO = 0.5; // percentage of screen width to use for logo (0.0 - 1.0)
-  const MAX_LOGO_HEIGHT = 200;  // px max height
-
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener?.('change', ({ window }) => {
-      setScreenWidth(window.width);
-    }) || (() => {}); // fallback for older RN
-
-    return () => {
-      // remove listener if supported
-      if (subscription && typeof subscription.remove === 'function') subscription.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!logoUrl) {
-      // fallback height if no logo
-      setLogoHeight(0);
-      return;
-    }
-
-    // Get natural image size to preserve aspect ratio
-    Image.getSize(
-      logoUrl,
-      (width, height) => {
-        const targetWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
-        const ratio = height / width;
-        let calculatedHeight = Math.round(targetWidth * ratio);
-        if (calculatedHeight > MAX_LOGO_HEIGHT) calculatedHeight = MAX_LOGO_HEIGHT;
-        setLogoHeight(calculatedHeight);
-      },
-      (error) => {
-        console.warn('Header: failed to get image size', error);
-        // fallback height
-        setLogoHeight(Math.min(100, MAX_LOGO_HEIGHT));
-      }
-    );
-  }, [logoUrl, screenWidth]);
-
-  const logoWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
-
+// ===== Header with Band Logo =====
+function Header() {
   return (
-    <SafeAreaView style={{ backgroundColor: '#8B4513' }}>
-      <View style={headerStyles.header}>
-        <View style={headerStyles.centerBlock}>
-          {logoUrl ? (
-            <Image
-              source={{ uri: logoUrl }}
-              style={{
-                width: logoWidth,
-                height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
-                resizeMode: 'contain',
-              }}
-            />
-          ) : (
-            <Text style={headerStyles.bandNameFallback}>{bandName || 'Jukebox'}</Text>
-          )}
-        </View>
-
-        <TouchableOpacity style={headerStyles.queueButton} onPress={onQueuePress}>
-          <Text style={headerStyles.queueButtonText}>View Queue ({queueCount})</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <View style={styles.header}>
+      <Image source={{ uri: BAND_LOGO }} style={styles.logo} />
+    </View>
   );
 }
 
-const headerStyles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#8B4513',
-  },
-  centerBlock: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  queueButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    maxWidth: '40%',
-  },
-  queueButtonText: {
-    color: '#8B4513',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  bandNameFallback: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-});
-
-//
-// Main CustomerApp (original logic preserved; header replaced with responsive Header)
-//
-export default function CustomerApp() {
-  const [songs, setSongs] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [filteredSongs, setFilteredSongs] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSong, setSelectedSong] = useState(null);
-  const [customerName, setCustomerName] = useState('');
-  const [priorityBoost, setPriorityBoost] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [queueModalVisible, setQueueModalVisible] = useState(false);
-  const [cooldownTime, setCooldownTime] = useState(0);
-  const [settings, setSettings] = useState({});
-  const [myRequests, setMyRequests] = useState([]);
+// ===== Banner Ad Component =====
+function BannerAd() {
+  const [ad, setAd] = useState(null);
 
   useEffect(() => {
-    // Load songs
-    const songsRef = ref(database, 'songs');
-    onValue(songsRef, (snapshot) => {
+    const adsRef = ref(database, 'ads');
+    const unsubscribe = onValue(adsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const songList = Object.values(data);
-        setSongs(songList);
-        setFilteredSongs(songList);
+        const activeAds = Object.values(data).filter((a) => a.active);
+        if (activeAds.length > 0) {
+          const randomAd =
+            activeAds[Math.floor(Math.random() * activeAds.length)];
+          setAd(randomAd);
+        }
       }
     });
 
-    // Load requests
-    const requestsRef = ref(database, 'requests');
-    onValue(requestsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const requestList = Object.values(data)
-          .filter(req => req.status !== 'played')
-          .sort((a, b) => {
-            if (a.status === 'confirmed' && b.status === 'pending') return -1;
-            if (a.status === 'pending' && b.status === 'confirmed') return 1;
-            if (a.priorityBoost && !b.priorityBoost) return -1;
-            if (!a.priorityBoost && b.priorityBoost) return 1;
-            return a.timestamp - b.timestamp;
-          });
-        setRequests(requestList);
-      }
-    });
-
-    // Load settings
-    const settingsRef = ref(database, 'settings');
-    onValue(settingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSettings(data);
-      }
-    });
-
-    // Load my requests from AsyncStorage
-    loadMyRequests();
-
-    // Check cooldown
-    checkCooldown();
+    return () => unsubscribe();
   }, []);
 
-  const loadMyRequests = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('myRequestIds');
-      if (stored) {
-        setMyRequests(JSON.parse(stored));
+  if (!ad) return null;
+
+  return (
+    <TouchableOpacity
+      onPress={() => Linking.openURL(ad.linkUrl)}
+      style={styles.bannerContainer}
+    >
+      <Image source={{ uri: ad.imageUrl }} style={styles.bannerImage} />
+    </TouchableOpacity>
+  );
+}
+
+// ===== Main Customer App =====
+export default function CustomerApp() {
+  const [songs, setSongs] = useState([]);
+  const [selectedSong, setSelectedSong] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Load songs from Firebase Realtime Database
+  useEffect(() => {
+    const songsRef = ref(database, 'songs');
+    const unsubscribe = onValue(songsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const songList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setSongs(songList);
+      } else {
+        setSongs([]);
       }
-    } catch (error) {
-      console.error('Error loading requests:', error);
-    }
-  };
+    });
 
-  const saveMyRequest = async (requestId) => {
-    try {
-      const updated = [...myRequests, requestId];
-      setMyRequests(updated);
-      await AsyncStorage.setItem('myRequestIds', JSON.stringify(updated));
-    } catch (error) {
-      console.error('Error saving request:', error);
-    }
-  };
+    return () => unsubscribe();
+  }, []);
 
-  const checkCooldown = async () => {
-    try {
-      const lastRequest = await AsyncStorage.getItem('lastRequestTime');
-      if (lastRequest) {
-        const elapsed = Date.now() - parseInt(lastRequest);
-        const remaining = 120000 - elapsed; // 2 minutes in ms
-        if (remaining > 0) {
-          setCooldownTime(Math.ceil(remaining / 1000));
-          startCooldownTimer(remaining);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking cooldown:', error);
-    }
-  };
-
-  const startCooldownTimer = (remaining) => {
-    // Note: AsyncStorage.getItem returns Promise; to avoid complexity, use stored timestamp in closure where possible.
-    const interval = setInterval(async () => {
-      try {
-        const last = await AsyncStorage.getItem('lastRequestTime');
-        const elapsed = Date.now() - parseInt(last || '0');
-        const timeLeft = Math.ceil((120000 - elapsed) / 1000);
-        if (timeLeft <= 0) {
-          setCooldownTime(0);
-          clearInterval(interval);
-        } else {
-          setCooldownTime(timeLeft);
-        }
-      } catch (e) {
-        console.error(e);
-        clearInterval(interval);
-      }
-    }, 1000);
-  };
-
-  const handleSearch = (text) => {
-    setSearchQuery(text);
-    if (text === '') {
-      setFilteredSongs(songs);
-    } else {
-      const filtered = songs.filter(
-        (song) =>
-          song.title.toLowerCase().includes(text.toLowerCase()) ||
-          song.artist.toLowerCase().includes(text.toLowerCase())
-      );
-      setFilteredSongs(filtered);
-    }
-  };
-
-  const openRequestModal = (song) => {
-    if (cooldownTime > 0) {
-      Alert.alert(
-        'Cooldown Active',
-        `Please wait ${cooldownTime} seconds before requesting another song.`
-      );
-      return;
-    }
+  const handleSongSelect = (song) => {
     setSelectedSong(song);
     setModalVisible(true);
   };
 
-  const submitRequest = async (paymentMethod) => {
+  const handleRequestSong = async () => {
     if (!selectedSong) return;
 
-    const requestsRef = ref(database, 'requests');
-    const newRequestRef = push(requestsRef);
-
-    const requestData = {
-      id: newRequestRef.key,
-      songId: selectedSong.id,
-      songTitle: selectedSong.title,
+    const queueRef = ref(database, 'queue');
+    await push(queueRef, {
+      title: selectedSong.title,
       artist: selectedSong.artist,
       price: selectedSong.price,
-      customerName: customerName || 'Anonymous',
+      status: 'requested',
       timestamp: Date.now(),
-      paymentMethod: paymentMethod,
-      status: 'pending',
-      priorityBoost: priorityBoost,
-      playedTimestamp: null
-    };
-
-    try {
-      await set(newRequestRef, requestData);
-      await saveMyRequest(newRequestRef.key);
-      await AsyncStorage.setItem('lastRequestTime', Date.now().toString());
-      
-      setModalVisible(false);
-      setCooldownTime(120);
-      startCooldownTimer(120000);
-      
-      if (paymentMethod === 'venmo') {
-        const amount = priorityBoost 
-          ? selectedSong.price + settings.priorityBoostPrice 
-          : selectedSong.price;
-        openVenmo(amount);
-      }
-
-      Alert.alert(
-        'Request Submitted!',
-        paymentMethod === 'cash'
-          ? 'Please wait for the manager to collect payment.'
-          : 'Please complete your Venmo payment.'
-      );
-
-      // Reset form
-      setSelectedSong(null);
-      setCustomerName('');
-      setPriorityBoost(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit request. Please try again.');
-      console.error(error);
-    }
-  };
-
-  const openVenmo = (amount) => {
-    const venmoUrl = `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song Request`;
-    Linking.canOpenURL(venmoUrl).then((supported) => {
-      if (supported) {
-        Linking.openURL(venmoUrl);
-      } else {
-        Alert.alert('Venmo Not Found', 'Please install Venmo app or use the QR code.');
-      }
     });
+
+    setModalVisible(false);
+    setSelectedSong(null);
   };
 
-  const renderSongItem = ({ item }) => (
+  const renderSong = ({ item }) => (
     <TouchableOpacity
       style={styles.songItem}
-      onPress={() => openRequestModal(item)}
-      disabled={cooldownTime > 0}
+      onPress={() => handleSongSelect(item)}
     >
-      <View style={styles.songInfo}>
-        <Text style={styles.songTitle}>{item.title}</Text>
-        <Text style={styles.songArtist}>{item.artist}</Text>
-      </View>
+      <Text style={styles.songTitle}>{item.title}</Text>
+      <Text style={styles.songArtist}>{item.artist}</Text>
       <Text style={styles.songPrice}>${item.price}</Text>
     </TouchableOpacity>
   );
 
-  const renderRequestItem = ({ item }) => {
-    const isMyRequest = myRequests.includes(item.id);
-    return (
-      <View style={[styles.requestItem, isMyRequest && styles.myRequestItem]}>
-        <View style={styles.requestInfo}>
-          <Text style={styles.requestTitle}>
-            {item.songTitle}
-            {item.priorityBoost && ' ⚡'}
-          </Text>
-          <Text style={styles.requestArtist}>{item.artist}</Text>
-          <Text style={styles.requestCustomer}>
-            Requested by: {item.customerName}
-          </Text>
-        </View>
-        <View style={styles.requestStatus}>
-          <Text
-            style={[
-              styles.statusText,
-              item.status === 'confirmed' ? styles.confirmed : styles.pending
-            ]}
-          >
-            {item.status === 'confirmed' ? '✓ Paid' : 'Pending'}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      {/* Header replaced with responsive Header */}
-      <Header
-        bandName={settings.bandName || 'Jukebox'}
-        logoUrl={settings.logoUrl || settings.bandLogoUrl || "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop,q=95/A0xwVVE355TJNvWo/img_9794-dJo6461XeNIkQwnN.jpg"}
-        queueCount={requests.length}
-        onQueuePress={() => setQueueModalVisible(true)}
-      />
-
-      {cooldownTime > 0 && (
-        <View style={styles.cooldownBanner}>
-          <Text style={styles.cooldownText}>
-            ⏱️ Cooldown: {cooldownTime}s remaining
-          </Text>
-        </View>
-      )}
-
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search by title or artist..."
-        value={searchQuery}
-        onChangeText={handleSearch}
-      />
-
+      <Header />
+      <Text style={styles.title}>Request a Song</Text>
       <FlatList
-        data={filteredSongs}
-        renderItem={renderSongItem}
+        data={songs}
         keyExtractor={(item) => item.id}
+        renderItem={renderSong}
         contentContainerStyle={styles.songList}
       />
 
-      {/* Request Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      {/* Song Request Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Request Song</Text>
-            
+          <View style={styles.modalContainer}>
             {selectedSong && (
               <>
-                <Text style={styles.modalSongTitle}>{selectedSong.title}</Text>
+                <Text style={styles.modalTitle}>{selectedSong.title}</Text>
                 <Text style={styles.modalArtist}>{selectedSong.artist}</Text>
                 <Text style={styles.modalPrice}>
-                  Base Price: ${selectedSong.price}
+                  Price: ${selectedSong.price}
                 </Text>
 
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your name (optional)"
-                  value={customerName}
-                  onChangeText={setCustomerName}
-                />
-
-                <View style={styles.priorityContainer}>
-                  <TouchableOpacity
-                    style={styles.checkbox}
-                    onPress={() => setPriorityBoost(!priorityBoost)}
-                  >
-                    <Text style={styles.checkboxText}>
-                      {priorityBoost ? '☑' : '☐'}
-                    </Text>
-                  </TouchableOpacity>
-                  <Text style={styles.priorityText}>
-                    Priority Boost (+${settings.priorityBoostPrice})
-                  </Text>
-                </View>
-
-                <Text style={styles.totalPrice}>
-                  Total: $
-                  {priorityBoost
-                    ? selectedSong.price + settings.priorityBoostPrice
-                    : selectedSong.price}
-                </Text>
-
-                <View style={styles.paymentButtons}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.venmoButton]}
-                    onPress={() => submitRequest('venmo')}
-                  >
-                    <Text style={styles.buttonText}>Pay with Venmo</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.cashButton]}
-                    onPress={() => submitRequest('cash')}
-                  >
-                    <Text style={styles.buttonText}>Pay Cash</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleRequestSong}
+                >
+                  <Text style={styles.confirmText}>Confirm Request</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={() => setModalVisible(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.cancelText}>Cancel</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -489,252 +156,121 @@ export default function CustomerApp() {
         </View>
       </Modal>
 
-      {/* Queue Modal */}
-      <Modal
-        visible={queueModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setQueueModalVisible(false)}
-      >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Current Queue</Text>
-            <TouchableOpacity onPress={() => setQueueModalVisible(false)}>
-              <Text style={styles.closeButton}>Close</Text>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={requests}
-            renderItem={renderRequestItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.queueList}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No requests yet!</Text>
-            }
-          />
-        </View>
-      </Modal>
+      <BannerAd />
     </View>
   );
 }
 
+// ===== Styles =====
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#0f172a',
+    paddingTop: 50,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 50,
-    backgroundColor: '#8B4513',
+    marginBottom: 10,
   },
-  headerTitle: {
-    fontSize: 24,
+  logo: {
+    width: 200,
+    height: 100,
+    resizeMode: 'contain',
+  },
+  title: {
+    color: '#f1f5f9',
+    fontSize: 22,
+    textAlign: 'center',
     fontWeight: 'bold',
-    color: '#fff',
-  },
-  queueButton: {
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
-  },
-  queueButtonText: {
-    color: '#8B4513',
-    fontWeight: 'bold',
-  },
-  cooldownBanner: {
-    backgroundColor: '#ff6b6b',
-    padding: 10,
-    alignItems: 'center',
-  },
-  cooldownText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  searchInput: {
-    backgroundColor: '#fff',
-    margin: 15,
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
+    marginBottom: 10,
   },
   songList: {
     padding: 15,
+    paddingBottom: 100,
   },
   songItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1e293b',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 10,
   },
-  songInfo: {
-    flex: 1,
-  },
   songTitle: {
+    color: '#e2e8f0',
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '600',
   },
   songArtist: {
+    color: '#94a3b8',
     fontSize: 14,
-    color: '#aaa',
-    marginTop: 4,
   },
   songPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#38bdf8',
+    fontSize: 14,
+    marginTop: 5,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#fff',
+  modalContainer: {
+    backgroundColor: '#1e293b',
+    padding: 20,
     borderRadius: 12,
-    padding: 25,
-    width: '85%',
-    maxWidth: 400,
+    width: '80%',
   },
   modalTitle: {
-    fontSize: 24,
+    color: '#f8fafc',
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalSongTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
   },
   modalArtist: {
-    fontSize: 16,
-    color: '#666',
+    color: '#cbd5e1',
+    fontSize: 18,
     marginBottom: 10,
   },
   modalPrice: {
+    color: '#38bdf8',
     fontSize: 16,
-    marginBottom: 15,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  priorityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  checkbox: {
-    marginRight: 10,
-  },
-  checkboxText: {
-    fontSize: 24,
-  },
-  priorityText: {
-    fontSize: 16,
-  },
-  totalPrice: {
-    fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 20,
-    textAlign: 'center',
   },
-  paymentButtons: {
-    gap: 10,
-  },
-  button: {
-    padding: 15,
+  confirmButton: {
+    backgroundColor: '#38bdf8',
+    paddingVertical: 10,
     borderRadius: 8,
-    alignItems: 'center',
     marginBottom: 10,
   },
-  venmoButton: {
-    backgroundColor: '#3D95CE',
-  },
-  cashButton: {
-    backgroundColor: '#4CAF50',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  confirmText: {
+    color: '#0f172a',
+    textAlign: 'center',
     fontWeight: 'bold',
   },
   cancelButton: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  queueList: {
-    padding: 15,
-  },
-  requestItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#2a2a2a',
-    padding: 15,
+    borderColor: '#38bdf8',
+    borderWidth: 1,
+    paddingVertical: 10,
     borderRadius: 8,
-    marginBottom: 10,
   },
-  myRequestItem: {
-    borderWidth: 2,
-    borderColor: '#FFD700',
-  },
-  requestInfo: {
-    flex: 1,
-  },
-  requestTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  requestArtist: {
-    fontSize: 14,
-    color: '#aaa',
-    marginTop: 2,
-  },
-  requestCustomer: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-  },
-  requestStatus: {
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  confirmed: {
-    color: '#4CAF50',
-  },
-  pending: {
-    color: '#ff9800',
-  },
-  emptyText: {
+  cancelText: {
+    color: '#38bdf8',
     textAlign: 'center',
-    color: '#aaa',
-    fontSize: 16,
-    marginTop: 50,
   },
-  closeButton: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  bannerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#0f172a',
+    borderTopWidth: 2,
+    borderTopColor: '#0891b2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  bannerImage: {
+    width: '100%',
+    height: 60,
+    resizeMode: 'contain',
   },
 });
