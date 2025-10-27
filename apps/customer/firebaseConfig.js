@@ -3,14 +3,13 @@
 // Copy this file to 'firebaseConfig.js' and add your actual Firebase credentials
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase } from 'firebase/database';
+import { getFirestore} from 'firebase/firestore';
 
 // Replace these with your actual Firebase configuration values
 // Get these from: Firebase Console → Project Settings → Your Apps → Web App
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY_HERE",
   authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
   projectId: "your-project-id",
   storageBucket: "your-project.appspot.com",
   messagingSenderId: "123456789012",
@@ -18,7 +17,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const database = getDatabase(app);
+export const database = getfirestore(app);
 
 // SETUP INSTRUCTIONS:
 // ===================
