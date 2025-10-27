@@ -5,7 +5,14 @@ import { getDatabase } from 'firebase/database';
 
 // Get these from: Firebase Console → Project Settings → Your Apps → Web App
 const firebaseConfig = {
-  paste the things here
+  apiKey: "AlzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
+  authDomain: "the-juke---nashville.firebaseapp.com",
+    databaseURL: "https://the-juke---nashville-default-rtdb.firebaseio.com/",
+  projectId: "the-juke---nashville",
+  storageBucket: "the-juke---nashville.firebasestorage.com",
+  messagingSenderId: "850520994035",
+  appId: "1:850520994035:web:e311969207eb4ec7b1c786",
+  measurementId: "G-DBTJJR3C1",
 };
 
 
