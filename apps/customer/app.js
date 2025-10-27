@@ -11,12 +11,128 @@ import {
   ScrollView,
   Alert,
   Linking,
-  Image
+  Image,
+  Dimensions,
+  SafeAreaView
 } from 'react-native';
 import { database } from './firebaseConfig';
 import { ref, onValue, push, set, get } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+//
+// Responsive Header component (uses settings.logoUrl from your realtime DB settings node)
+// - centered always
+// - scales to screen width while preserving aspect ratio
+// - caps max height so it doesn't dominate tablets
+//
+function Header({ bandName, logoUrl, queueCount, onQueuePress }) {
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [logoHeight, setLogoHeight] = useState(0);
+
+  // tweak these to taste
+  const LOGO_WIDTH_RATIO = 0.5; // percentage of screen width to use for logo (0.0 - 1.0)
+  const MAX_LOGO_HEIGHT = 200;  // px max height
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener?.('change', ({ window }) => {
+      setScreenWidth(window.width);
+    }) || (() => {}); // fallback for older RN
+
+    return () => {
+      // remove listener if supported
+      if (subscription && typeof subscription.remove === 'function') subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!logoUrl) {
+      // fallback height if no logo
+      setLogoHeight(0);
+      return;
+    }
+
+    // Get natural image size to preserve aspect ratio
+    Image.getSize(
+      logoUrl,
+      (width, height) => {
+        const targetWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
+        const ratio = height / width;
+        let calculatedHeight = Math.round(targetWidth * ratio);
+        if (calculatedHeight > MAX_LOGO_HEIGHT) calculatedHeight = MAX_LOGO_HEIGHT;
+        setLogoHeight(calculatedHeight);
+      },
+      (error) => {
+        console.warn('Header: failed to get image size', error);
+        // fallback height
+        setLogoHeight(Math.min(100, MAX_LOGO_HEIGHT));
+      }
+    );
+  }, [logoUrl, screenWidth]);
+
+  const logoWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
+
+  return (
+    <SafeAreaView style={{ backgroundColor: '#8B4513' }}>
+      <View style={headerStyles.header}>
+        <View style={headerStyles.centerBlock}>
+          {logoUrl ? (
+            <Image
+              source={{ uri: logoUrl }}
+              style={{
+                width: logoWidth,
+                height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
+                resizeMode: 'contain',
+              }}
+            />
+          ) : (
+            <Text style={headerStyles.bandNameFallback}>{bandName || 'Jukebox'}</Text>
+          )}
+        </View>
+
+        <TouchableOpacity style={headerStyles.queueButton} onPress={onQueuePress}>
+          <Text style={headerStyles.queueButtonText}>View Queue ({queueCount})</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const headerStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#8B4513',
+  },
+  centerBlock: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    maxWidth: '40%',
+  },
+  queueButtonText: {
+    color: '#8B4513',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  bandNameFallback: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+});
+
+//
+// Main CustomerApp (original logic preserved; header replaced with responsive Header)
+//
 export default function CustomerApp() {
   const [songs, setSongs] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -115,14 +231,21 @@ export default function CustomerApp() {
   };
 
   const startCooldownTimer = (remaining) => {
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - parseInt(AsyncStorage.getItem('lastRequestTime'));
-      const timeLeft = Math.ceil((120000 - elapsed) / 1000);
-      if (timeLeft <= 0) {
-        setCooldownTime(0);
+    // Note: AsyncStorage.getItem returns Promise; to avoid complexity, use stored timestamp in closure where possible.
+    const interval = setInterval(async () => {
+      try {
+        const last = await AsyncStorage.getItem('lastRequestTime');
+        const elapsed = Date.now() - parseInt(last || '0');
+        const timeLeft = Math.ceil((120000 - elapsed) / 1000);
+        if (timeLeft <= 0) {
+          setCooldownTime(0);
+          clearInterval(interval);
+        } else {
+          setCooldownTime(timeLeft);
+        }
+      } catch (e) {
+        console.error(e);
         clearInterval(interval);
-      } else {
-        setCooldownTime(timeLeft);
       }
     }, 1000);
   };
@@ -261,15 +384,13 @@ export default function CustomerApp() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{settings.bandName || 'Jukebox'}</Text>
-        <TouchableOpacity
-          style={styles.queueButton}
-          onPress={() => setQueueModalVisible(true)}
-        >
-          <Text style={styles.queueButtonText}>View Queue ({requests.length})</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Header replaced with responsive Header */}
+      <Header
+        bandName={settings.bandName || 'Jukebox'}
+        logoUrl={settings.logoUrl || settings.bandLogoUrl || "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop,q=95/A0xwVVE355TJNvWo/img_9794-dJo6461XeNIkQwnN.jpg"}
+        queueCount={requests.length}
+        onQueuePress={() => setQueueModalVisible(true)}
+      />
 
       {cooldownTime > 0 && (
         <View style={styles.cooldownBanner}>
