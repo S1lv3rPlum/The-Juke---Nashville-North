@@ -201,11 +201,12 @@ export default function ManagerApp() {
       const newSongRef = push(songsRef);
       
       await set(newSongRef, {
-        id: newSongRef.key,
-        title: newSongTitle.trim(),
-        artist: newSongArtist.trim(),
-        price: price
-      });
+  id: newSongRef.key,
+  title: newSongTitle.trim(),
+  artist: newSongArtist.trim(),
+  price: parseFloat(newSongPrice),
+  appKey: "MY_SECRET_APP_KEY"
+});
 
       Alert.alert('Success', 'Song added to catalog!');
       setNewSongTitle('');
