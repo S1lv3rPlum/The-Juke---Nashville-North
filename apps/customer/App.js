@@ -59,7 +59,7 @@ function Header({ bandName, logoUrl, queueCount, onQueuePress }) {
   const logoWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#8B4513' }}>
+    <SafeAreaView style={headerStyles.safeArea}>
       <View style={headerStyles.header}>
         <View style={headerStyles.centerBlock}>
           {logoUrl ? (
@@ -84,9 +84,25 @@ function Header({ bandName, logoUrl, queueCount, onQueuePress }) {
 }
 
 const headerStyles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#8B4513' },
+  safeArea: {
+    backgroundColor: '#8B4513',
+  },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    backgroundColor: '#8B4513' 
+  },
   centerBlock: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  queueButton: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, maxWidth: '40%' },
+  queueButton: { 
+    backgroundColor: '#fff', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 8, 
+    maxWidth: '40%' 
+  },
   queueButtonText: { color: '#8B4513', fontWeight: 'bold', fontSize: 14 },
   bandNameFallback: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 });
@@ -142,7 +158,14 @@ export default function CustomerApp() {
     onValue(settingsRef, snapshot => { if (snapshot.val()) setSettings(snapshot.val()); });
 
     const adsRef = ref(database, 'ads');
-    onValue(adsRef, snapshot => { if (snapshot.val()) setAds(Object.values(snapshot.val())); });
+    onValue(adsRef, snapshot => { 
+      if (snapshot.val()) {
+        const allAds = Object.values(snapshot.val());
+        // Only show active ads
+        const activeAds = allAds.filter(ad => ad.active === true);
+        setAds(activeAds);
+      }
+    });
 
     loadMyRequests();
     checkCooldown();
@@ -288,13 +311,15 @@ export default function CustomerApp() {
         onQueuePress={() => setQueueModalVisible(true)}
       />
 
-      {cooldownTime > 0 && (
-        <View style={styles.cooldownBanner}><Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text></View>
-      )}
+      <View style={styles.contentContainer}>
+        {cooldownTime > 0 && (
+          <View style={styles.cooldownBanner}><Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text></View>
+        )}
 
-      <TextInput style={styles.searchInput} placeholder="Search by title or artist..." value={searchQuery} onChangeText={handleSearch} />
+        <TextInput style={styles.searchInput} placeholder="Search by title or artist..." value={searchQuery} onChangeText={handleSearch} />
 
-      <FlatList data={filteredSongs} renderItem={renderSongItem} keyExtractor={item => item.id} contentContainerStyle={styles.songList} />
+        <FlatList data={filteredSongs} renderItem={renderSongItem} keyExtractor={item => item.id} contentContainerStyle={styles.songList} />
+      </View>
 
       {/* Request Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
@@ -341,13 +366,27 @@ export default function CustomerApp() {
 
       {/* Banner Ads */}
       {ads.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.adBanner}>
-          {ads.map((ad, idx) => (
-            <TouchableOpacity key={idx} onPress={() => ad.link && Linking.openURL(ad.link)}>
-              <Image source={{ uri: ad.imageUrl }} style={styles.adImage} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <SafeAreaView style={styles.adBannerContainer} edges={['bottom']}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            style={styles.adBanner}
+            contentContainerStyle={styles.adBannerContent}
+          >
+            {ads.map((ad, idx) => (
+              <TouchableOpacity 
+                key={idx} 
+                onPress={() => ad.linkURL && Linking.openURL(ad.linkURL)}
+                activeOpacity={0.7}
+              >
+                <Image 
+                  source={{ uri: ad.imageURL }} 
+                  style={styles.adImage}
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
       )}
     </View>
   );
@@ -356,10 +395,11 @@ export default function CustomerApp() {
 // ----- Styles -----
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
+  contentContainer: { flex: 1 },
   cooldownBanner: { backgroundColor: '#ff6b6b', padding: 10, alignItems: 'center' },
   cooldownText: { color: '#fff', fontWeight: 'bold' },
   searchInput: { backgroundColor: '#fff', margin: 15, padding: 12, borderRadius: 8, fontSize: 16 },
-  songList: { padding: 15 },
+  songList: { padding: 15, paddingBottom: 20 },
   songItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2a2a2a', padding: 15, borderRadius: 8, marginBottom: 10 },
   songInfo: { flex: 1 },
   songTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
@@ -399,6 +439,24 @@ const styles = StyleSheet.create({
   confirmed: { color: '#4CAF50' },
   pending: { color: '#FFA500' },
   emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20 },
-  adBanner: { paddingVertical: 10, backgroundColor: '#111' },
-  adImage: { width: 300, height: 80, borderRadius: 8, marginHorizontal: 5, resizeMode: 'cover' },
+  adBannerContainer: { 
+    backgroundColor: '#111',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  adBanner: { 
+    maxHeight: 100,
+  },
+  adBannerContent: {
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+  },
+  adImage: { 
+    width: 300, 
+    height: 80, 
+    borderRadius: 8, 
+    marginHorizontal: 5, 
+    resizeMode: 'cover' 
+  },
 });
