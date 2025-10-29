@@ -14,10 +14,84 @@ import {
   Image,
   Dimensions,
   SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { database } from './firebaseConfig';
 import { ref, onValue, push, set } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+//
+// Ad Carousel Component
+//
+function AdCarousel({ ads }) {
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener?.('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ads.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prevIndex) => (prevIndex + 1) % ads.length);
+    }, 5000); // Change ad every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [ads.length]);
+
+  const currentAd = ads[currentAdIndex];
+  const adWidth = screenWidth - 20; // 10px padding on each side
+  const adHeight = adWidth / 6; // Maintain 6:1 ratio
+
+  return (
+    <View style={adCarouselStyles.container}>
+      <TouchableOpacity 
+        onPress={() => currentAd.linkURL && Linking.openURL(currentAd.linkURL)}
+        activeOpacity={0.7}
+      >
+        <Image 
+          source={{ uri: currentAd.imageURL }} 
+          style={{
+            width: adWidth,
+            height: adHeight,
+            borderRadius: 8,
+            resizeMode: 'contain',
+          }}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const adCarouselStyles = StyleSheet.create({
+  container: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#666',
+    marginHorizontal: 3,
+  },
+  activeDot: {
+    backgroundColor: '#fff',
+  },
+});
 
 //
 // Responsive Header component
@@ -59,31 +133,37 @@ function Header({ bandName, logoUrl, queueCount, onQueuePress }) {
   const logoWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
 
   return (
-    <SafeAreaView style={headerStyles.safeArea}>
-      <View style={headerStyles.header}>
-        <View style={headerStyles.centerBlock}>
-          {logoUrl ? (
-            <Image
-              source={{ uri: logoUrl }}
-              style={{
-                width: logoWidth,
-                height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
-                resizeMode: 'contain',
-              }}
-            />
-          ) : (
-            <Text style={headerStyles.bandNameFallback}>{bandName || 'Jukebox'}</Text>
-          )}
+    <View style={headerStyles.headerWrapper}>
+      <SafeAreaView style={headerStyles.safeArea}>
+        <View style={headerStyles.header}>
+          <View style={headerStyles.centerBlock}>
+            {logoUrl ? (
+              <Image
+                source={{ uri: logoUrl }}
+                style={{
+                  width: logoWidth,
+                  height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
+                  resizeMode: 'contain',
+                }}
+              />
+            ) : (
+              <Text style={headerStyles.bandNameFallback}>{bandName || 'Jukebox'}</Text>
+            )}
+          </View>
+          <TouchableOpacity style={headerStyles.queueButton} onPress={onQueuePress}>
+            <Text style={headerStyles.queueButtonText}>View Queue ({queueCount})</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={headerStyles.queueButton} onPress={onQueuePress}>
-          <Text style={headerStyles.queueButtonText}>View Queue ({queueCount})</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const headerStyles = StyleSheet.create({
+  headerWrapper: {
+    backgroundColor: '#8B4513',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   safeArea: {
     backgroundColor: '#8B4513',
   },
@@ -304,6 +384,8 @@ export default function CustomerApp() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#8B4513" />
+      
       <Header
         bandName={settings.bandName || 'Jukebox'}
         logoUrl={settings.logoUrl || settings.bandLogoUrl || "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop,q=95/A0xwVVE355TJNvWo/img_9794-dJo6461XeNIkQwnN.jpg"}
@@ -365,29 +447,13 @@ export default function CustomerApp() {
       </Modal>
 
       {/* Banner Ads */}
-      {ads.length > 0 && (
-        <SafeAreaView style={styles.adBannerContainer} edges={['bottom']}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            style={styles.adBanner}
-            contentContainerStyle={styles.adBannerContent}
-          >
-            {ads.map((ad, idx) => (
-              <TouchableOpacity 
-                key={idx} 
-                onPress={() => ad.linkURL && Linking.openURL(ad.linkURL)}
-                activeOpacity={0.7}
-              >
-                <Image 
-                  source={{ uri: ad.imageURL }} 
-                  style={styles.adImage}
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      )}
+{ads.length > 0 && (
+  <SafeAreaView style={styles.adBannerContainer} edges={['bottom']}>
+    <View style={styles.adBannerInner}>
+      <AdCarousel ads={ads} />
+    </View>
+  </SafeAreaView>
+)}
     </View>
   );
 }
@@ -444,19 +510,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#333',
   },
-  adBanner: { 
-    maxHeight: 100,
-  },
-  adBannerContent: {
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    alignItems: 'center',
-  },
-  adImage: { 
-    width: 300, 
-    height: 80, 
-    borderRadius: 8, 
-    marginHorizontal: 5, 
-    resizeMode: 'cover' 
-  },
+  adBannerInner: {
+  paddingBottom: 30,
+},
 });
