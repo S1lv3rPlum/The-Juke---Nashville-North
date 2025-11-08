@@ -77,20 +77,6 @@ const adCarouselStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#666',
-    marginHorizontal: 3,
-  },
-  activeDot: {
-    backgroundColor: '#fff',
-  },
 });
 
 //
@@ -192,6 +178,7 @@ const headerStyles = StyleSheet.create({
 //
 export default function CustomerApp() {
   const [songs, setSongs] = useState([]);
+  const [allSongs, setAllSongs] = useState([]); // Store all songs for filtering
   const [requests, setRequests] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -207,13 +194,16 @@ export default function CustomerApp() {
 
   // Load songs, requests, settings, ads, my requests
   useEffect(() => {
+    let loadedSongs = [];
+    let loadedRequests = [];
+
     const songsRef = ref(database, 'songs');
     onValue(songsRef, snapshot => {
       const data = snapshot.val();
       if (data) {
-        const list = Object.values(data);
-        setSongs(list);
-        setFilteredSongs(list);
+        loadedSongs = Object.values(data);
+        setAllSongs(loadedSongs);
+        filterAvailableSongs(loadedSongs, loadedRequests);
       }
     });
 
@@ -230,7 +220,9 @@ export default function CustomerApp() {
             if (!a.priorityBoost && b.priorityBoost) return 1;
             return a.timestamp - b.timestamp;
           });
+        loadedRequests = list;
         setRequests(list);
+        filterAvailableSongs(loadedSongs, list);
       }
     });
 
@@ -250,6 +242,21 @@ export default function CustomerApp() {
     loadMyRequests();
     checkCooldown();
   }, []);
+
+  // Filter out songs that are already confirmed in the queue
+  const filterAvailableSongs = (allSongsList, requestsList) => {
+    const confirmedRequests = requestsList.filter(r => r.status === 'confirmed');
+    const confirmedSongIds = confirmedRequests.map(r => r.songId);
+    const availableSongs = allSongsList.filter(song => !confirmedSongIds.includes(song.id));
+    setSongs(availableSongs);
+    
+    // Reapply search filter if there is one
+    if (searchQuery) {
+      handleSearch(searchQuery, availableSongs);
+    } else {
+      setFilteredSongs(availableSongs);
+    }
+  };
 
   const loadMyRequests = async () => {
     try {
@@ -288,13 +295,16 @@ export default function CustomerApp() {
     }, 1000);
   };
 
-  const handleSearch = text => {
+  const handleSearch = (text, songsList = songs) => {
     setSearchQuery(text);
-    if (!text) setFilteredSongs(songs);
-    else setFilteredSongs(songs.filter(s =>
-      s.title.toLowerCase().includes(text.toLowerCase()) ||
-      s.artist.toLowerCase().includes(text.toLowerCase())
-    ));
+    if (!text) {
+      setFilteredSongs(songsList);
+    } else {
+      setFilteredSongs(songsList.filter(s =>
+        s.title.toLowerCase().includes(text.toLowerCase()) ||
+        s.artist.toLowerCase().includes(text.toLowerCase())
+      ));
+    }
   };
 
   const openRequestModal = song => {
@@ -302,6 +312,19 @@ export default function CustomerApp() {
       Alert.alert('Cooldown Active', `Please wait ${cooldownTime} seconds before requesting another song.`);
       return;
     }
+
+    // Check if request limit has been reached
+    const confirmedCount = requests.filter(r => r.status === 'confirmed').length;
+    const maxRequests = settings.maxRequests || 10;
+    
+    if (confirmedCount >= maxRequests) {
+      Alert.alert(
+        'Request Limit Reached', 
+        `The band has reached the maximum of ${maxRequests} song requests for tonight. Please check back later if any slots open up!`
+      );
+      return;
+    }
+
     setSelectedSong(song);
     setModalVisible(true);
   };
@@ -382,6 +405,9 @@ export default function CustomerApp() {
     );
   };
 
+  const confirmedCount = requests.filter(r => r.status === 'confirmed').length;
+  const maxRequests = settings.maxRequests || 10;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#8B4513" />
@@ -395,12 +421,38 @@ export default function CustomerApp() {
 
       <View style={styles.contentContainer}>
         {cooldownTime > 0 && (
-          <View style={styles.cooldownBanner}><Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text></View>
+          <View style={styles.cooldownBanner}>
+            <Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text>
+          </View>
         )}
 
-        <TextInput style={styles.searchInput} placeholder="Search by title or artist..." value={searchQuery} onChangeText={handleSearch} />
+        {/* Request Limit Status Banner */}
+        <View style={styles.requestLimitBanner}>
+          <Text style={styles.requestLimitText}>
+            🎵 {confirmedCount}/{maxRequests} song slots filled
+          </Text>
+        </View>
 
-        <FlatList data={filteredSongs} renderItem={renderSongItem} keyExtractor={item => item.id} contentContainerStyle={styles.songList} />
+        <TextInput 
+          style={styles.searchInput} 
+          placeholder="Search by title or artist..." 
+          value={searchQuery} 
+          onChangeText={(text) => handleSearch(text)}
+        />
+
+        <FlatList 
+          data={filteredSongs} 
+          renderItem={renderSongItem} 
+          keyExtractor={item => item.id} 
+          contentContainerStyle={styles.songList}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {confirmedCount >= maxRequests 
+                ? 'All song slots are filled! Check back later.' 
+                : 'No songs available at this time.'}
+            </Text>
+          }
+        />
       </View>
 
       {/* Request Modal */}
@@ -447,13 +499,13 @@ export default function CustomerApp() {
       </Modal>
 
       {/* Banner Ads */}
-{ads.length > 0 && (
-  <SafeAreaView style={styles.adBannerContainer} edges={['bottom']}>
-    <View style={styles.adBannerInner}>
-      <AdCarousel ads={ads} />
-    </View>
-  </SafeAreaView>
-)}
+      {ads.length > 0 && (
+        <SafeAreaView style={styles.adBannerContainer} edges={['bottom']}>
+          <View style={styles.adBannerInner}>
+            <AdCarousel ads={ads} />
+          </View>
+        </SafeAreaView>
+      )}
     </View>
   );
 }
@@ -464,6 +516,18 @@ const styles = StyleSheet.create({
   contentContainer: { flex: 1 },
   cooldownBanner: { backgroundColor: '#ff6b6b', padding: 10, alignItems: 'center' },
   cooldownText: { color: '#fff', fontWeight: 'bold' },
+  requestLimitBanner: { 
+    backgroundColor: '#2a2a2a', 
+    padding: 10, 
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
+  },
+  requestLimitText: { 
+    color: '#4CAF50', 
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   searchInput: { backgroundColor: '#fff', margin: 15, padding: 12, borderRadius: 8, fontSize: 16 },
   songList: { padding: 15, paddingBottom: 20 },
   songItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2a2a2a', padding: 15, borderRadius: 8, marginBottom: 10 },
@@ -504,13 +568,13 @@ const styles = StyleSheet.create({
   statusText: { fontWeight: 'bold', fontSize: 14 },
   confirmed: { color: '#4CAF50' },
   pending: { color: '#FFA500' },
-  emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20 },
+  emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20, fontSize: 16 },
   adBannerContainer: { 
     backgroundColor: '#111',
     borderTopWidth: 1,
     borderTopColor: '#333',
   },
   adBannerInner: {
-  paddingBottom: 30,
-},
+    paddingBottom: 30,
+  },
 });
