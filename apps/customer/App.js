@@ -343,7 +343,7 @@ export default function CustomerApp() {
       customerName: customerName || 'Anonymous',
       timestamp: Date.now(),
       paymentMethod,
-      status: 'pending',
+      status: paymentMethod === 'venmo' ? 'confirmed' : 'pending',
       priorityBoost,
       playedTimestamp: null
     };
