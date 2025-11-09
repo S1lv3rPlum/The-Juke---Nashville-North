@@ -12,7 +12,7 @@ import {
   ScrollView
 } from 'react-native';
 import { database } from './firebaseConfig';
-import { ref, onValue, update, remove, push, set } from 'firebase/database';
+import { ref, onValue, update, remove, push, set, get } from 'firebase/database';
 
 export default function ManagerApp() {
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -23,6 +23,8 @@ export default function ManagerApp() {
   const [songModalVisible, setSongModalVisible] = useState(false);
   const [editSongModalVisible, setEditSongModalVisible] = useState(false);
   const [newPriorityPrice, setNewPriorityPrice] = useState('');
+  const [newMaxRequests, setNewMaxRequests] = useState('');
+  const [newVenmoUsername, setNewVenmoUsername] = useState('');
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'songs'
   
   // New song form
@@ -83,14 +85,16 @@ export default function ManagerApp() {
     });
 
     // Load settings
-    const settingsRef = ref(database, 'settings');
-    onValue(settingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSettings(data);
-        setNewPriorityPrice(data.priorityBoostPrice?.toString() || '10');
-      }
-    });
+const settingsRef = ref(database, 'settings');
+onValue(settingsRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    setSettings(data);
+    setNewPriorityPrice(data.priorityBoostPrice?.toString() || '10');
+    setNewMaxRequests(data.maxRequests?.toString() || '10');
+    setNewVenmoUsername(data.venmoUsername || '');
+  }
+});
   }, []);
 
   const confirmPayment = async (request) => {
@@ -166,24 +170,87 @@ export default function ManagerApp() {
     );
   };
 
-  const updatePriorityPrice = async () => {
-    const price = parseFloat(newPriorityPrice);
-    if (isNaN(price) || price < 0) {
-      Alert.alert('Invalid Price', 'Please enter a valid price.');
-      return;
-    }
+ const updateSettings = async () => {
+  const price = parseFloat(newPriorityPrice);
+  const maxReq = parseInt(newMaxRequests);
+  
+  if (isNaN(price) || price < 0) {
+    Alert.alert('Invalid Price', 'Please enter a valid priority boost price.');
+    return;
+  }
+  
+  if (isNaN(maxReq) || maxReq < 1) {
+    Alert.alert('Invalid Number', 'Please enter a valid number for max requests (minimum 1).');
+    return;
+  }
 
-    try {
-      const settingsRef = ref(database, 'settings');
-      await update(settingsRef, { priorityBoostPrice: price });
-      Alert.alert('Success', `Priority boost price updated to $${price}`);
-      setSettingsModalVisible(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update price.');
-      console.error(error);
-    }
-  };
+  if (!newVenmoUsername.trim()) {
+    Alert.alert('Missing Info', 'Please enter your Venmo username.');
+    return;
+  }
 
+  try {
+    const settingsRef = ref(database, 'settings');
+    await update(settingsRef, { 
+      priorityBoostPrice: price,
+      maxRequests: maxReq,
+      venmoUsername: newVenmoUsername.trim()
+    });
+    Alert.alert('Success', `Settings updated!\nPriority boost: $${price}\nMax requests: ${maxReq}\nVenmo: @${newVenmoUsername.trim()}`);
+    setSettingsModalVisible(false);
+  } catch (error) {
+    Alert.alert('Error', 'Failed to update settings.');
+    console.error(error);
+  }
+};
+
+ const resetQueue = async () => {
+  Alert.alert(
+    'Reset Queue',
+    'What would you like to reset?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear Played Songs Only',
+        onPress: async () => {
+          try {
+            const requestsRef = ref(database, 'requests');
+            const snapshot = await get(requestsRef);
+            const data = snapshot.val();
+            
+            if (data) {
+              const deletePromises = Object.keys(data)
+                .filter(key => data[key].status === 'played')
+                .map(key => remove(ref(database, `requests/${key}`)));
+              
+              await Promise.all(deletePromises);
+              Alert.alert('Success', 'Played songs cleared!');
+            } else {
+              Alert.alert('Info', 'No played songs to clear.');
+            }
+          } catch (error) {
+            Alert.alert('Error', 'Failed to clear played songs.');
+            console.error(error);
+          }
+        }
+      },
+      {
+        text: 'Reset Entire Queue',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const requestsRef = ref(database, 'requests');
+            await remove(requestsRef);
+            Alert.alert('Success', 'Queue completely reset for new show!');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to reset queue.');
+            console.error(error);
+          }
+        }
+      }
+    ]
+  );
+};
   const addSong = async () => {
     if (!newSongTitle.trim() || !newSongArtist.trim()) {
       Alert.alert('Missing Info', 'Please enter both title and artist.');
@@ -485,36 +552,65 @@ export default function ManagerApp() {
         transparent={true}
         onRequestClose={() => setSettingsModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Manager Settings</Text>
+       <View style={styles.modalOverlay}>
+  <View style={styles.modalContent}>
+    <Text style={styles.modalTitle}>Manager Settings</Text>
 
-            <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Priority Boost Price ($)</Text>
-              <TextInput
-                style={styles.priceInput}
-                value={newPriorityPrice}
-                onChangeText={setNewPriorityPrice}
-                keyboardType="numeric"
-                placeholder="10"
-              />
-            </View>
+    <View style={styles.settingItem}>
+      <Text style={styles.settingLabel}>Priority Boost Price ($)</Text>
+      <TextInput
+        style={styles.priceInput}
+        value={newPriorityPrice}
+        onChangeText={setNewPriorityPrice}
+        keyboardType="numeric"
+        placeholder="10"
+      />
+    </View>
 
-            <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
-              onPress={updatePriorityPrice}
-            >
-              <Text style={styles.buttonText}>Save Changes</Text>
-            </TouchableOpacity>
+    <View style={styles.settingItem}>
+      <Text style={styles.settingLabel}>Max Song Requests</Text>
+      <TextInput
+        style={styles.priceInput}
+        value={newMaxRequests}
+        onChangeText={setNewMaxRequests}
+        keyboardType="numeric"
+        placeholder="10"
+      />
+    </View>
 
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setSettingsModalVisible(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          <View style={styles.settingItem}>
+  <Text style={styles.settingLabel}>Venmo Username</Text>
+  <TextInput
+    style={styles.priceInput}
+    value={newVenmoUsername}
+    onChangeText={setNewVenmoUsername}
+    placeholder="your-venmo-username"
+    autoCapitalize="none"
+  />
+</View>
+
+   <TouchableOpacity
+  style={[styles.button, styles.saveButton]}
+  onPress={updateSettings}
+>
+  <Text style={styles.buttonText}>Save Changes</Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={[styles.button, styles.resetButton]}
+  onPress={resetQueue}
+>
+  <Text style={styles.buttonText}>🔄 Reset Queue</Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={styles.cancelButton}
+  onPress={() => setSettingsModalVisible(false)}
+>
+  <Text style={styles.cancelButtonText}>Cancel</Text>
+</TouchableOpacity>
+  </View>
+</View>
       </Modal>
 
       {/* Add Song Modal */}
@@ -862,6 +958,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     marginBottom: 10,
   },
+  resetButton: {
+  backgroundColor: '#ff9800',
+  marginBottom: 10,
+},
   cancelButton: {
     padding: 12,
     alignItems: 'center',
