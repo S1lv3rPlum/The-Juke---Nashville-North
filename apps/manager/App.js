@@ -593,14 +593,14 @@ onValue(settingsRef, (snapshot) => {
   style={[styles.button, styles.saveButton]}
   onPress={updateSettings}
 >
-  <Text style={styles.buttonText}>Save Changes</Text>
+  <Text style={styles.saveButtonText}>Save Changes</Text>
 </TouchableOpacity>
 
 <TouchableOpacity
   style={[styles.button, styles.resetButton]}
   onPress={resetQueue}
 >
-  <Text style={styles.buttonText}>🔄 Reset Queue</Text>
+  <Text style={styles.resetButtonText}>🔄 Reset Queue</Text>
 </TouchableOpacity>
 
 <TouchableOpacity
@@ -859,6 +859,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  saveButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
+resetButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
   addSongButton: {
     backgroundColor: '#4CAF50',
     margin: 15,
@@ -956,11 +966,15 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#4CAF50',
-    marginBottom: 10,
-  },
+      marginBottom: 10,
+    paddingVertical: 25,
+    alignItems: 'center'
+    },
   resetButton: {
   backgroundColor: '#ff9800',
-  marginBottom: 10,
+   marginBottom: 10,
+  paddingVertical: 25,
+  alignItems: 'center'
 },
   cancelButton: {
     padding: 12,
@@ -968,6 +982,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: '#666',
-    fontSize: 16,
+    fontSize: 10,
   },
 });
