@@ -4,7 +4,7 @@
 # CRITICAL: Firebase Configuration
 # ==========================================
 # NEVER commit your actual Firebase keys!
-firebaseConfig.js
+#firebaseConfig.js
 .env
 .env.local
 .env.production
