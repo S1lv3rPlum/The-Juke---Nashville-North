@@ -840,6 +840,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center', 
   },
   confirmButton: {
     backgroundColor: '#4CAF50',
@@ -968,13 +969,15 @@ resetButtonText: {
     backgroundColor: '#4CAF50',
       marginBottom: 10,
     paddingVertical: 25,
-    alignItems: 'center'
+    alignItems: 'center',
+   flex: undefined, 
     },
   resetButton: {
   backgroundColor: '#ff9800',
    marginBottom: 10,
   paddingVertical: 25,
-  alignItems: 'center'
+  alignItems: 'center',
+  flex: undefined, 
 },
   cancelButton: {
     padding: 12,
