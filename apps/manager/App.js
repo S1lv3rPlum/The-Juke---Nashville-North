@@ -9,7 +9,8 @@ import {
   Alert,
   TextInput,
   Modal,
-  ScrollView
+  ScrollView,
+  Vibration,
 } from 'react-native';
 import { database } from './firebaseConfig';
 import { ref, onValue, update, remove, push, set, get } from 'firebase/database';
@@ -25,6 +26,7 @@ export default function ManagerApp() {
   const [newPriorityPrice, setNewPriorityPrice] = useState('');
   const [newMaxRequests, setNewMaxRequests] = useState('');
   const [newVenmoUsername, setNewVenmoUsername] = useState('');
+  const [previousPendingCount, setPreviousPendingCount] = useState(0);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'songs'
   
   // New song form
@@ -62,8 +64,14 @@ export default function ManagerApp() {
             return a.timestamp - b.timestamp;
           });
 
+        // Check if new pending request arrived and vibrate
+        if (pending.length > previousPendingCount && previousPendingCount > 0) {
+          Vibration.vibrate([0, 500, 200, 500]);
+        }
+
         setPendingRequests(pending);
         setConfirmedRequests(confirmed);
+        setPreviousPendingCount(pending.length);
       } else {
         setPendingRequests([]);
         setConfirmedRequests([]);
@@ -85,17 +93,17 @@ export default function ManagerApp() {
     });
 
     // Load settings
-const settingsRef = ref(database, 'settings');
-onValue(settingsRef, (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    setSettings(data);
-    setNewPriorityPrice(data.priorityBoostPrice?.toString() || '10');
-    setNewMaxRequests(data.maxRequests?.toString() || '10');
-    setNewVenmoUsername(data.venmoUsername || '');
-  }
-});
-  }, []);
+    const settingsRef = ref(database, 'settings');
+    onValue(settingsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setSettings(data);
+        setNewPriorityPrice(data.priorityBoostPrice?.toString() || '10');
+        setNewMaxRequests(data.maxRequests?.toString() || '10');
+        setNewVenmoUsername(data.venmoUsername || '');
+      }
+    });
+  }, [previousPendingCount]);
 
   const confirmPayment = async (request) => {
     Alert.alert(
@@ -589,15 +597,15 @@ onValue(settingsRef, (snapshot) => {
   />
 </View>
 
-   <TouchableOpacity
-  style={[styles.button, styles.saveButton]}
+  <TouchableOpacity
+  style={[styles.saveButton]}
   onPress={updateSettings}
 >
   <Text style={styles.saveButtonText}>Save Changes</Text>
 </TouchableOpacity>
 
 <TouchableOpacity
-  style={[styles.button, styles.resetButton]}
+  style={[styles.resetButton]}
   onPress={resetQueue}
 >
   <Text style={styles.resetButtonText}>🔄 Reset Queue</Text>
@@ -646,12 +654,12 @@ onValue(settingsRef, (snapshot) => {
               keyboardType="numeric"
             />
 
-            <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
-              onPress={addSong}
-            >
-              <Text style={styles.buttonText}>Add Song</Text>
-            </TouchableOpacity>
+           <TouchableOpacity
+  style={[styles.saveButton]}
+  onPress={addSong}
+>
+  <Text style={styles.saveButtonText}>Add Song</Text>
+</TouchableOpacity>
 
             <TouchableOpacity
               style={styles.cancelButton}
@@ -697,11 +705,11 @@ onValue(settingsRef, (snapshot) => {
             />
 
             <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
-              onPress={updateSong}
-            >
-              <Text style={styles.buttonText}>Update Song</Text>
-            </TouchableOpacity>
+  style={[styles.saveButton]}
+  onPress={updateSong}
+>
+  <Text style={styles.saveButtonText}>Update Song</Text>
+</TouchableOpacity>
 
             <TouchableOpacity
               style={styles.cancelButton}
@@ -955,6 +963,7 @@ resetButtonText: {
     marginBottom: 15,
     fontSize: 16,
     backgroundColor: '#f5f5f5',
+    color: '#333',
   },
   priceInput: {
     borderWidth: 1,
@@ -963,17 +972,18 @@ resetButtonText: {
     padding: 12,
     fontSize: 18,
     backgroundColor: '#f5f5f5',
+    color: '#333',
   },
   saveButton: {
     backgroundColor: '#4CAF50',
       marginBottom: 10,
-    paddingVertical: 25,
+    paddingVertical: 20,
     alignItems: 'center'
     },
   resetButton: {
   backgroundColor: '#ff9800',
    marginBottom: 10,
-  paddingVertical: 25,
+  paddingVertical: 20,
   alignItems: 'center'
 },
   cancelButton: {

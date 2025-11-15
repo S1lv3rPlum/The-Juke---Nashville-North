@@ -54,30 +54,18 @@ export default function BandLeaderApp() {
   };
 
   const markAsPlayed = async (request) => {
-    Alert.alert(
-      'Mark as Played',
-      `Mark "${request.songTitle}" as played?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark Played',
-          onPress: async () => {
-            try {
-              const requestRef = ref(database, `requests/${request.id}`);
-              await update(requestRef, {
-                status: 'played',
-                playedTimestamp: Date.now()
-              });
-              Alert.alert('✓', 'Song marked as played!');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to mark as played.');
-              console.error(error);
-            }
-          }
-        }
-      ]
-    );
-  };
+  try {
+    const requestRef = ref(database, `requests/${request.id}`);
+    await update(requestRef, {
+      status: 'played',
+      playedTimestamp: Date.now()
+    });
+    // No alert - song is silently marked as played and removed from queue
+  } catch (error) {
+    Alert.alert('Error', 'Failed to mark as played.');
+    console.error(error);
+  }
+};
 
   const renderRequest = ({ item, index }) => (
     <View style={[
