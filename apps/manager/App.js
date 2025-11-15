@@ -26,7 +26,7 @@ export default function ManagerApp() {
   const [newPriorityPrice, setNewPriorityPrice] = useState('');
   const [newMaxRequests, setNewMaxRequests] = useState('');
   const [newVenmoUsername, setNewVenmoUsername] = useState('');
-  const [previousPendingCount, setPreviousPendingCount] = useState(0);
+  const [previousPendingCount, setPreviousPendingCount] = useState(null);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'songs'
   
   // New song form
@@ -970,14 +970,12 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   saveButton: {
-  backgroundColor: '#4CAF50',
-  marginBottom: 10,
-  padding: 12,
-  borderRadius: 8,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-resetButton: {
+    backgroundColor: '#4CAF50',
+      marginBottom: 10,
+    paddingVertical: 25,
+    alignItems: 'center'
+    },
+  resetButton: {
   backgroundColor: '#ff9800',
   marginBottom: 10,
   padding: 12,
