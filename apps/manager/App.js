@@ -956,6 +956,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f5f5f5',
     color: '#333',
+    color: '#333',
   },
   priceInput: {
     borderWidth: 1,
