@@ -635,6 +635,7 @@ export default function ManagerApp() {
             <TextInput
               style={styles.input}
               placeholder="Song Title"
+              placeholderTextColor="#999"
               value={newSongTitle}
               onChangeText={setNewSongTitle}
             />
@@ -642,6 +643,7 @@ export default function ManagerApp() {
             <TextInput
               style={styles.input}
               placeholder="Artist Name"
+              placeholderTextColor="#999"
               value={newSongArtist}
               onChangeText={setNewSongArtist}
             />
@@ -649,6 +651,7 @@ export default function ManagerApp() {
             <TextInput
               style={styles.input}
               placeholder="Price"
+              placeholderTextColor="#999"
               value={newSongPrice}
               onChangeText={setNewSongPrice}
               keyboardType="numeric"
@@ -955,8 +958,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
     backgroundColor: '#f5f5f5',
-    color: '#333',
-    color: '#333',
+    color: '#000000',
   },
   priceInput: {
     borderWidth: 1,
@@ -968,16 +970,20 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
-      marginBottom: 10,
-    paddingVertical: 25,
-    alignItems: 'center'
-    },
-  resetButton: {
+  backgroundColor: '#4CAF50',
+  marginBottom: 10,
+  padding: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+resetButton: {
   backgroundColor: '#ff9800',
-   marginBottom: 10,
-  paddingVertical: 25,
-  alignItems: 'center'
+  marginBottom: 10,
+  padding: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
 },
   cancelButton: {
     padding: 12,
