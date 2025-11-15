@@ -848,6 +848,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   confirmButton: {
     backgroundColor: '#4CAF50',
@@ -867,16 +868,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  saveButtonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: 'bold',
-},
-resetButtonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: 'bold',
-},
   addSongButton: {
     backgroundColor: '#4CAF50',
     margin: 15,
@@ -945,6 +936,7 @@ resetButtonText: {
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#333',
   },
   settingItem: {
     marginBottom: 20,
@@ -977,13 +969,13 @@ resetButtonText: {
   saveButton: {
     backgroundColor: '#4CAF50',
       marginBottom: 10,
-    paddingVertical: 20,
+    paddingVertical: 25,
     alignItems: 'center'
     },
   resetButton: {
   backgroundColor: '#ff9800',
    marginBottom: 10,
-  paddingVertical: 20,
+  paddingVertical: 25,
   alignItems: 'center'
 },
   cancelButton: {
@@ -992,6 +984,6 @@ resetButtonText: {
   },
   cancelButtonText: {
     color: '#666',
-    fontSize: 10,
+    fontSize: 16,
   },
 });
