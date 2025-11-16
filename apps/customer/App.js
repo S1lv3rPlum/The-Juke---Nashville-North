@@ -14,10 +14,70 @@ import {
   Image,
   Dimensions,
   SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { database } from './firebaseConfig';
 import { ref, onValue, push, set } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+//
+// Ad Carousel Component
+//
+function AdCarousel({ ads }) {
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener?.('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ads.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prevIndex) => (prevIndex + 1) % ads.length);
+    }, 5000); // Change ad every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [ads.length]);
+
+  const currentAd = ads[currentAdIndex];
+  const adWidth = screenWidth - 20; // 10px padding on each side
+  const adHeight = adWidth / 6; // Maintain 6:1 ratio
+
+  return (
+    <View style={adCarouselStyles.container}>
+      <TouchableOpacity 
+        onPress={() => currentAd.linkURL && Linking.openURL(currentAd.linkURL)}
+        activeOpacity={0.7}
+      >
+        <Image 
+          source={{ uri: currentAd.imageURL }} 
+          style={{
+            width: adWidth,
+            height: adHeight,
+            borderRadius: 8,
+            resizeMode: 'contain',
+          }}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const adCarouselStyles = StyleSheet.create({
+  container: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 //
 // Responsive Header component
@@ -59,34 +119,56 @@ function Header({ bandName, logoUrl, queueCount, onQueuePress }) {
   const logoWidth = Math.round(screenWidth * LOGO_WIDTH_RATIO);
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#8B4513' }}>
-      <View style={headerStyles.header}>
-        <View style={headerStyles.centerBlock}>
-          {logoUrl ? (
-            <Image
-              source={{ uri: logoUrl }}
-              style={{
-                width: logoWidth,
-                height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
-                resizeMode: 'contain',
-              }}
-            />
-          ) : (
-            <Text style={headerStyles.bandNameFallback}>{bandName || 'Jukebox'}</Text>
-          )}
+    <View style={headerStyles.headerWrapper}>
+      <SafeAreaView style={headerStyles.safeArea}>
+        <View style={headerStyles.header}>
+          <View style={headerStyles.centerBlock}>
+            {logoUrl ? (
+              <Image
+                source={{ uri: logoUrl }}
+                style={{
+                  width: logoWidth,
+                  height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
+                  resizeMode: 'contain',
+                }}
+              />
+            ) : (
+              <Text style={headerStyles.bandNameFallback}>{bandName || 'Jukebox'}</Text>
+            )}
+          </View>
+          <TouchableOpacity style={headerStyles.queueButton} onPress={onQueuePress}>
+            <Text style={headerStyles.queueButtonText}>View Queue ({queueCount})</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={headerStyles.queueButton} onPress={onQueuePress}>
-          <Text style={headerStyles.queueButtonText}>View Queue ({queueCount})</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const headerStyles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#8B4513' },
+  headerWrapper: {
+    backgroundColor: '#8B4513',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  safeArea: {
+    backgroundColor: '#8B4513',
+  },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    backgroundColor: '#8B4513' 
+  },
   centerBlock: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  queueButton: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, maxWidth: '40%' },
+  queueButton: { 
+    backgroundColor: '#fff', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 8, 
+    maxWidth: '40%' 
+  },
   queueButtonText: { color: '#8B4513', fontWeight: 'bold', fontSize: 14 },
   bandNameFallback: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 });
@@ -96,6 +178,7 @@ const headerStyles = StyleSheet.create({
 //
 export default function CustomerApp() {
   const [songs, setSongs] = useState([]);
+  const [allSongs, setAllSongs] = useState([]); // Store all songs for filtering
   const [requests, setRequests] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,13 +194,16 @@ export default function CustomerApp() {
 
   // Load songs, requests, settings, ads, my requests
   useEffect(() => {
+    let loadedSongs = [];
+    let loadedRequests = [];
+
     const songsRef = ref(database, 'songs');
     onValue(songsRef, snapshot => {
       const data = snapshot.val();
       if (data) {
-        const list = Object.values(data);
-        setSongs(list);
-        setFilteredSongs(list);
+        loadedSongs = Object.values(data);
+        setAllSongs(loadedSongs);
+        filterAvailableSongs(loadedSongs, loadedRequests);
       }
     });
 
@@ -134,7 +220,9 @@ export default function CustomerApp() {
             if (!a.priorityBoost && b.priorityBoost) return 1;
             return a.timestamp - b.timestamp;
           });
+        loadedRequests = list;
         setRequests(list);
+        filterAvailableSongs(loadedSongs, list);
       }
     });
 
@@ -142,11 +230,33 @@ export default function CustomerApp() {
     onValue(settingsRef, snapshot => { if (snapshot.val()) setSettings(snapshot.val()); });
 
     const adsRef = ref(database, 'ads');
-    onValue(adsRef, snapshot => { if (snapshot.val()) setAds(Object.values(snapshot.val())); });
+    onValue(adsRef, snapshot => { 
+      if (snapshot.val()) {
+        const allAds = Object.values(snapshot.val());
+        // Only show active ads
+        const activeAds = allAds.filter(ad => ad.active === true);
+        setAds(activeAds);
+      }
+    });
 
     loadMyRequests();
     checkCooldown();
   }, []);
+
+  // Filter out songs that are already confirmed in the queue
+  const filterAvailableSongs = (allSongsList, requestsList) => {
+    const confirmedRequests = requestsList.filter(r => r.status === 'confirmed');
+    const confirmedSongIds = confirmedRequests.map(r => r.songId);
+    const availableSongs = allSongsList.filter(song => !confirmedSongIds.includes(song.id));
+    setSongs(availableSongs);
+    
+    // Reapply search filter if there is one
+    if (searchQuery) {
+      handleSearch(searchQuery, availableSongs);
+    } else {
+      setFilteredSongs(availableSongs);
+    }
+  };
 
   const loadMyRequests = async () => {
     try {
@@ -185,13 +295,16 @@ export default function CustomerApp() {
     }, 1000);
   };
 
-  const handleSearch = text => {
+  const handleSearch = (text, songsList = songs) => {
     setSearchQuery(text);
-    if (!text) setFilteredSongs(songs);
-    else setFilteredSongs(songs.filter(s =>
-      s.title.toLowerCase().includes(text.toLowerCase()) ||
-      s.artist.toLowerCase().includes(text.toLowerCase())
-    ));
+    if (!text) {
+      setFilteredSongs(songsList);
+    } else {
+      setFilteredSongs(songsList.filter(s =>
+        s.title.toLowerCase().includes(text.toLowerCase()) ||
+        s.artist.toLowerCase().includes(text.toLowerCase())
+      ));
+    }
   };
 
   const openRequestModal = song => {
@@ -199,6 +312,19 @@ export default function CustomerApp() {
       Alert.alert('Cooldown Active', `Please wait ${cooldownTime} seconds before requesting another song.`);
       return;
     }
+
+    // Check if request limit has been reached
+    const confirmedCount = requests.filter(r => r.status === 'confirmed').length;
+    const maxRequests = settings.maxRequests || 10;
+    
+    if (confirmedCount >= maxRequests) {
+      Alert.alert(
+        'Request Limit Reached', 
+        `The band has reached the maximum of ${maxRequests} song requests for tonight. Please check back later if any slots open up!`
+      );
+      return;
+    }
+
     setSelectedSong(song);
     setModalVisible(true);
   };
@@ -217,7 +343,7 @@ export default function CustomerApp() {
       customerName: customerName || 'Anonymous',
       timestamp: Date.now(),
       paymentMethod,
-      status: 'pending',
+      status: paymentMethod === 'venmo' ? 'confirmed' : 'pending',
       priorityBoost,
       playedTimestamp: null
     };
@@ -279,8 +405,13 @@ export default function CustomerApp() {
     );
   };
 
+  const confirmedCount = requests.filter(r => r.status === 'confirmed').length;
+  const maxRequests = settings.maxRequests || 10;
+
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#8B4513" />
+      
       <Header
         bandName={settings.bandName || 'Jukebox'}
         logoUrl={settings.logoUrl || settings.bandLogoUrl || "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop,q=95/A0xwVVE355TJNvWo/img_9794-dJo6461XeNIkQwnN.jpg"}
@@ -288,13 +419,42 @@ export default function CustomerApp() {
         onQueuePress={() => setQueueModalVisible(true)}
       />
 
-      {cooldownTime > 0 && (
-        <View style={styles.cooldownBanner}><Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text></View>
-      )}
+      <View style={styles.contentContainer}>
+        {cooldownTime > 0 && (
+          <View style={styles.cooldownBanner}>
+            <Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text>
+          </View>
+        )}
 
-      <TextInput style={styles.searchInput} placeholder="Search by title or artist..." value={searchQuery} onChangeText={handleSearch} />
+        {/* Request Limit Status Banner */}
+        <View style={styles.requestLimitBanner}>
+          <Text style={styles.requestLimitText}>
+            🎵 {confirmedCount}/{maxRequests} song slots filled
+          </Text>
+        </View>
 
-      <FlatList data={filteredSongs} renderItem={renderSongItem} keyExtractor={item => item.id} contentContainerStyle={styles.songList} />
+        <TextInput 
+          style={styles.searchInput} 
+          placeholder="Search by title or artist..." 
+          placeholderTextColor="#666"
+          value={searchQuery} 
+          onChangeText={(text) => handleSearch(text)}
+        />
+
+        <FlatList 
+          data={filteredSongs} 
+          renderItem={renderSongItem} 
+          keyExtractor={item => item.id} 
+          contentContainerStyle={styles.songList}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {confirmedCount >= maxRequests 
+                ? 'All song slots are filled! Check back later.' 
+                : 'No songs available at this time.'}
+            </Text>
+          }
+        />
+      </View>
 
       {/* Request Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
@@ -306,7 +466,13 @@ export default function CustomerApp() {
               <Text style={styles.modalArtist}>{selectedSong.artist}</Text>
               <Text style={styles.modalPrice}>Base Price: ${selectedSong.price}</Text>
 
-              <TextInput style={styles.input} placeholder="Your name (optional)" value={customerName} onChangeText={setCustomerName} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Your name or message (optional)" 
+                placeholderTextColor="#999"
+                value={customerName} 
+                onChangeText={setCustomerName} 
+              />
 
               <View style={styles.priorityContainer}>
                 <TouchableOpacity style={styles.checkbox} onPress={() => setPriorityBoost(!priorityBoost)}>
@@ -341,13 +507,11 @@ export default function CustomerApp() {
 
       {/* Banner Ads */}
       {ads.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.adBanner}>
-          {ads.map((ad, idx) => (
-            <TouchableOpacity key={idx} onPress={() => ad.link && Linking.openURL(ad.link)}>
-              <Image source={{ uri: ad.imageUrl }} style={styles.adImage} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <SafeAreaView style={styles.adBannerContainer} edges={['bottom']}>
+          <View style={styles.adBannerInner}>
+            <AdCarousel ads={ads} />
+          </View>
+        </SafeAreaView>
       )}
     </View>
   );
@@ -356,10 +520,30 @@ export default function CustomerApp() {
 // ----- Styles -----
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
+  contentContainer: { flex: 1 },
   cooldownBanner: { backgroundColor: '#ff6b6b', padding: 10, alignItems: 'center' },
   cooldownText: { color: '#fff', fontWeight: 'bold' },
-  searchInput: { backgroundColor: '#fff', margin: 15, padding: 12, borderRadius: 8, fontSize: 16 },
-  songList: { padding: 15 },
+  requestLimitBanner: { 
+    backgroundColor: '#2a2a2a', 
+    padding: 10, 
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
+  },
+  requestLimitText: { 
+    color: '#4CAF50', 
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  searchInput: { 
+    backgroundColor: '#fff', 
+    margin: 15, 
+    padding: 12, 
+    borderRadius: 8, 
+    fontSize: 16,
+    color: '#333'
+  },
+  songList: { padding: 15, paddingBottom: 20 },
   songItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2a2a2a', padding: 15, borderRadius: 8, marginBottom: 10 },
   songInfo: { flex: 1 },
   songTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
@@ -371,7 +555,15 @@ const styles = StyleSheet.create({
   modalSongTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
   modalArtist: { fontSize: 16, color: '#666', marginBottom: 10 },
   modalPrice: { fontSize: 16, marginBottom: 15 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 15, fontSize: 16 },
+  input: { 
+    borderWidth: 1, 
+    borderColor: '#ddd', 
+    borderRadius: 8, 
+    padding: 12, 
+    marginBottom: 15, 
+    fontSize: 16,
+    color: '#333'
+  },
   priorityContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   checkbox: { marginRight: 10 },
   checkboxText: { fontSize: 24 },
@@ -398,7 +590,13 @@ const styles = StyleSheet.create({
   statusText: { fontWeight: 'bold', fontSize: 14 },
   confirmed: { color: '#4CAF50' },
   pending: { color: '#FFA500' },
-  emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20 },
-  adBanner: { paddingVertical: 10, backgroundColor: '#111' },
-  adImage: { width: 300, height: 80, borderRadius: 8, marginHorizontal: 5, resizeMode: 'cover' },
+  emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20, fontSize: 16 },
+  adBannerContainer: { 
+    backgroundColor: '#111',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  adBannerInner: {
+    paddingBottom: 30,
+  },
 });
