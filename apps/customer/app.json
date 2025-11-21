@@ -13,14 +13,29 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourband.jukebox.customer"
+      "bundleIdentifier": "com.yourband.jukebox.customer",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "venmo"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#8B4513"
       },
-      "package": "com.yourband.jukebox.customer"
+      "package": "com.yourband.jukebox.customer",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "venmo"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

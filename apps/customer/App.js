@@ -436,7 +436,6 @@ export default function CustomerApp() {
         <TextInput 
           style={styles.searchInput} 
           placeholder="Search by title or artist..." 
-          placeholderTextColor="#666"
           value={searchQuery} 
           onChangeText={(text) => handleSearch(text)}
         />
@@ -535,14 +534,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  searchInput: { 
-    backgroundColor: '#fff', 
-    margin: 15, 
-    padding: 12, 
-    borderRadius: 8, 
-    fontSize: 16,
-    color: '#333'
-  },
+  searchInput: { backgroundColor: '#fff', margin: 15, padding: 12, borderRadius: 8, fontSize: 16 },
   songList: { padding: 15, paddingBottom: 20 },
   songItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2a2a2a', padding: 15, borderRadius: 8, marginBottom: 10 },
   songInfo: { flex: 1 },
