@@ -465,7 +465,13 @@ export default function CustomerApp() {
               <Text style={styles.modalArtist}>{selectedSong.artist}</Text>
               <Text style={styles.modalPrice}>Base Price: ${selectedSong.price}</Text>
 
-              <TextInput style={styles.input} placeholder="Your name (optional)" value={customerName} onChangeText={setCustomerName} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Your name or message (optional)" 
+                placeholderTextColor="#999"
+                value={customerName} 
+                onChangeText={setCustomerName} 
+              />
 
               <View style={styles.priorityContainer}>
                 <TouchableOpacity style={styles.checkbox} onPress={() => setPriorityBoost(!priorityBoost)}>
@@ -541,7 +547,15 @@ const styles = StyleSheet.create({
   modalSongTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
   modalArtist: { fontSize: 16, color: '#666', marginBottom: 10 },
   modalPrice: { fontSize: 16, marginBottom: 15 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 15, fontSize: 16 },
+  input: { 
+    borderWidth: 1, 
+    borderColor: '#ddd', 
+    borderRadius: 8, 
+    padding: 12, 
+    marginBottom: 15, 
+    fontSize: 16,
+    color: '#333'
+  },
   priorityContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   checkbox: { marginRight: 10 },
   checkboxText: { fontSize: 24 },
