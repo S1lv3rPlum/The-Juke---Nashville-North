@@ -183,8 +183,8 @@ async function migrateToMultiBand() {
   try {
     // Step 1: Create a band account for your existing data
     console.log('Step 1: Creating band account...');
-    const bandEmail = 'band@example.com';  // CHANGE THIS
-    const bandPassword = 'temporary123';    // CHANGE THIS
+    const bandEmail = 'DataForgeApps@gmail.com';  // CHANGE THIS
+    const bandPassword = '228Goethe';    // CHANGE THIS
     
     const userCredential = await createUserWithEmailAndPassword(auth, bandEmail, bandPassword);
     const bandId = userCredential.user.uid;
