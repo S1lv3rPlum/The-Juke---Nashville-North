@@ -1,11 +1,9 @@
 // BandApp/App.js
-// Minimal version to test authentication flow
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig';
 
 // Import auth screens
@@ -13,54 +11,13 @@ import LoginScreen from './src/screens/auth/LoginScreen';
 import SignupScreen from './src/screens/auth/SignupScreen';
 import ForgotPasswordScreen from './src/screens/auth/ForgotPasswordScreen';
 import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
+
+// Import actual app screens
 import BandLeaderApp from './src/screens/leader/LeaderApp';
 import ManagerApp from './src/screens/manager/ManagerApp';
 
-
 const Stack = createStackNavigator();
-const DEV_FORCE_LOGIN = true; // ⬅️ set to false later for production
-
-
-// Temporary placeholder screens for testing
-//function ManagerApp({ navigation }) {
- // const handleLogout = async () => {
-  //  await signOut(auth);
-  //  navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-//  };
-
-  //return (
-   // <View style={styles.placeholder}>
-     // <Text style={styles.placeholderTitle}>🎸 Manager Mode</Text>
-     // <Text style={styles.placeholderText}>
-        //Authentication successful!{'\n\n'}
-       // Manager features coming in Part 2 of migration.
-      //</Text>
-      //<TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-       // <Text style={styles.logoutText}>Logout</Text>
-     // </TouchableOpacity>
-   // </View>
- // );
-//}
-
-function LeaderApp({ navigation }) {
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-  };
-
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderTitle}>🎤 Leader Mode</Text>
-      <Text style={styles.placeholderText}>
-        Authentication successful!{'\n\n'}
-        Leader features coming in Part 3 of migration.
-      </Text>
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+const DEV_FORCE_LOGIN = true; // Set to false for production
 
 // Auth Stack
 function AuthStack() {
@@ -89,21 +46,20 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  if (DEV_FORCE_LOGIN) {
-    // Fake user so the app loads its main functionality
-    setUser({ uid: "dev-testing-user" });
-    setLoading(false);
-    return;
-  }
+    if (DEV_FORCE_LOGIN) {
+      // Skip auth for development testing
+      setUser({ uid: "dev-testing-user" });
+      setLoading(false);
+      return;
+    }
 
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-    setLoading(false);
-  });
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
 
-  return unsubscribe;
-}, []);
-
+    return unsubscribe;
+  }, []);
 
   if (loading) {
     return (
@@ -133,6 +89,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
   },
+
   placeholder: {
     flex: 1,
     backgroundColor: '#1a1a1a',
