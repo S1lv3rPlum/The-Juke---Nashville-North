@@ -431,7 +431,7 @@ const RECOMMENDED_SECURITY_RULES = `
 // ============================================================================
 
 // Uncomment to run migration:
-// migrateToMultiBand();
+ migrateToMultiBand();
 
 export {
   DATABASE_SCHEMA,
