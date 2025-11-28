@@ -13,33 +13,36 @@ import LoginScreen from './src/screens/auth/LoginScreen';
 import SignupScreen from './src/screens/auth/SignupScreen';
 import ForgotPasswordScreen from './src/screens/auth/ForgotPasswordScreen';
 import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
+import BandLeaderApp from './src/screens/leader/LeaderApp';
+import ManagerApp from './src/screens/manager/ManagerApp';
+
 
 const Stack = createStackNavigator();
 const DEV_FORCE_LOGIN = true; // ⬅️ set to false later for production
 
 
 // Temporary placeholder screens for testing
-function ManagerPlaceholder({ navigation }) {
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-  };
+//function ManagerApp({ navigation }) {
+ // const handleLogout = async () => {
+  //  await signOut(auth);
+  //  navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+//  };
 
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderTitle}>🎸 Manager Mode</Text>
-      <Text style={styles.placeholderText}>
-        Authentication successful!{'\n\n'}
-        Manager features coming in Part 2 of migration.
-      </Text>
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+  //return (
+   // <View style={styles.placeholder}>
+     // <Text style={styles.placeholderTitle}>🎸 Manager Mode</Text>
+     // <Text style={styles.placeholderText}>
+        //Authentication successful!{'\n\n'}
+       // Manager features coming in Part 2 of migration.
+      //</Text>
+      //<TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+       // <Text style={styles.logoutText}>Logout</Text>
+     // </TouchableOpacity>
+   // </View>
+ // );
+//}
 
-function LeaderPlaceholder({ navigation }) {
+function LeaderApp({ navigation }) {
   const handleLogout = async () => {
     await signOut(auth);
     navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
@@ -75,8 +78,8 @@ function AppStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
-      <Stack.Screen name="ManagerApp" component={ManagerPlaceholder} />
-      <Stack.Screen name="LeaderApp" component={LeaderPlaceholder} />
+      <Stack.Screen name="ManagerApp" component={ManagerApp} />
+      <Stack.Screen name="LeaderApp" component={BandLeaderApp} />
     </Stack.Navigator>
   );
 }
