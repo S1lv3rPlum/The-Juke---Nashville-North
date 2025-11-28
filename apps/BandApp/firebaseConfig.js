@@ -1,7 +1,12 @@
-// firebaseConfig.js
-import { initializeApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
-import { getAuth } from "firebase/auth";  // NEW: Add auth
+import { initializeApp } from 'firebase/app';
+import { getDatabase } from 'firebase/database';
+
+// ❌ REMOVE these imports (Expo Go cannot use them)
+// import { 
+//   getReactNativePersistence,
+//   initializeAuth
+// } from 'firebase/auth';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
@@ -14,21 +19,26 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
-export const database = getDatabase(app);
-export const auth = getAuth(app);  // NEW: Export auth
-// SETUP INSTRUCTIONS:
+const auth = {
+  currentUser: null,
 
-// SETUP INSTRUCTIONS:
-// ===================
-// 1. Copy this file: cp firebaseConfig.template.js firebaseConfig.js
-// 2. Open firebaseConfig.js
-// 3. Replace all the "YOUR_" placeholders with actual values from Firebase Console
-// 4. Save the file
-// 5. NEVER commit firebaseConfig.js to GitHub (it's in .gitignore)
+  // Immediately call the callback so App.js stops "loading"
+  onAuthStateChanged: (cb) => {
+    cb(null); // Always "logged out"
+    return () => {};
+  },
 
-// For other developers:
-// When you clone this repo, you'll need to:
-// 1. Create your own Firebase project
-// 2. Copy firebaseConfig.template.js to firebaseConfig.js
-// 3. Add your own Firebase credentials
+  signInWithEmailAndPassword: async () => {
+    console.warn("Firebase Auth disabled: using Expo Go");
+    return { user: null };
+  },
+
+  signOut: async () => {
+    console.warn("Firebase Auth disabled: using Expo Go");
+  },
+};
+
+
+export { app, database, auth };
