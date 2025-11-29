@@ -19,10 +19,6 @@ import { auth } from '../../../firebaseConfig';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native';
 
-export default function ManagerApp() {
-  const [bandId, setBandId] = useState(null);
-
-
 
 export default function ManagerApp() {
   const [bandId, setBandId] = useState(null);
@@ -48,15 +44,9 @@ export default function ManagerApp() {
   const [editingSong, setEditingSong] = useState(null);
   const [editSongTitle, setEditSongTitle] = useState('');
   const [editSongArtist, setEditSongArtist] = useState('');
-  const [editSongPrice, setEditSongPrice] = useState('');
-  const [activeTab, setActiveTab] = useState('pending'); // Update this line
-// Change to: 'pending', 'confirmed', 'masterList', 'setList'
+  const [editSongPrice, setEditSongPrice] = useState('');  
 
 // Add new state for Master List
-const [showLineDanceOnly, setShowLineDanceOnly] = useState(false);
-const [showRequestableOnly, setShowRequestableOnly] = useState(false);
-
-// Master List filters
 const [showLineDanceOnly, setShowLineDanceOnly] = useState(false);
 const [showRequestableOnly, setShowRequestableOnly] = useState(false);
 
@@ -156,14 +146,14 @@ const setListUnsub = onValue(setListRef, (snapshot) => {
       }
     });
 
-    // Load band slug from directory
+// Load band slug from directory
+let bandDirUnsub = () => {}; // Declare outside if statement
 const user = auth.currentUser;
 if (user) {
   const bandDirRef = ref(database, 'bandDirectory');
-  const bandDirUnsub = onValue(bandDirRef, (snapshot) => {
+  bandDirUnsub = onValue(bandDirRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      // Find our band in directory
       const ourBand = Object.values(data).find(b => b.bandId === user.uid);
       if (ourBand) {
         setBandSlug(ourBand.bandSlug || '');
@@ -177,6 +167,8 @@ if (user) {
   songsUnsub();
   settingsUnsub();
   setListUnsub(); 
+  bandDirUnsub();
+
 };
   }, [bandId, previousPendingCount]);
 
@@ -352,36 +344,27 @@ if (user) {
     const newSongRef = push(songsRef);
 
     await set(newSongRef, {
-  id: newSongRef.key,
-  title: newSongTitle.trim(),
-  artist: newSongArtist.trim(),
-  price: parseFloat(newSongPrice),
-  isLineDance: false,        // NEW: Default to false
-  isRequestable: true,        // NEW: Default to true
-  createdAt: Date.now()       // NEW: Track when added
-});
+      id: newSongRef.key,
+      title: newSongTitle.trim(),
+      artist: newSongArtist.trim(),
+      price: price,
+      isLineDance: false,
+      isRequestable: true,
+      createdAt: Date.now(),
+    });
 
     Alert.alert('Success', 'Song added to master list!');
     setNewSongTitle('');
     setNewSongArtist('');
     setNewSongPrice('5');
     setSongModalVisible(false);
+
   } catch (error) {
     Alert.alert('Error', 'Failed to add song.');
     console.error(error);
   }
 };
 
-      Alert.alert('Success', 'Song added to catalog!');
-      setNewSongTitle('');
-      setNewSongArtist('');
-      setNewSongPrice('5');
-      setSongModalVisible(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add song.');
-      console.error(error);
-    }
-  };
 
   const openEditSong = (song) => {
     setEditingSong(song);
@@ -550,57 +533,6 @@ const toggleRequestable = async (song) => {
     </View>
   );
 
-  const renderMasterListItem = ({ item }) => (
-  <View style={styles.masterListCard}>
-    <View style={styles.masterListHeader}>
-      <View style={styles.masterListInfo}>
-        <Text style={styles.masterListTitle}>
-          {item.title}
-          {item.isLineDance && ' 👢'}
-        </Text>
-        <Text style={styles.masterListArtist}>{item.artist}</Text>
-      </View>
-      <Text style={styles.masterListPrice}>${item.price}</Text>
-    </View>
-
-    <View style={styles.toggleRow}>
-      <TouchableOpacity
-        style={[styles.toggleButton, item.isLineDance && styles.toggleButtonActive]}
-        onPress={() => toggleLineDance(item)}
-      >
-        <Text style={styles.toggleButtonText}>
-          {item.isLineDance ? '✓' : ''} Line Dance
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.toggleButton, item.isRequestable && styles.toggleButtonActive]}
-        onPress={() => toggleRequestable(item)}
-      >
-        <Text style={styles.toggleButtonText}>
-          {item.isRequestable ? '✓' : ''} Requestable
-        </Text>
-      </TouchableOpacity>
-    </View>
-
-    <View style={styles.buttonRow}>
-      <TouchableOpacity
-        style={[styles.button, styles.editButton]}
-        onPress={() => openEditSong(item)}
-      >
-        <Text style={styles.buttonText}>✎ Edit</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.button, styles.deleteButton]}
-        onPress={() => deleteSong(item)}
-      >
-        <Text style={styles.buttonText}>✕ Delete</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
 const renderSetListItem = ({ item, index }) => {
   if (item.type === 'break') {
     return (
@@ -685,30 +617,6 @@ if (!bandId) {
   );
 }
 
-
-const toggleLineDance = async (song) => {
-  try {
-    const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
-    await update(songRef, {
-      isLineDance: !song.isLineDance
-    });
-  } catch (error) {
-    Alert.alert('Error', 'Failed to update song.');
-    console.error(error);
-  }
-};
-
-const toggleRequestable = async (song) => {
-  try {
-    const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
-    await update(songRef, {
-      isRequestable: !song.isRequestable
-    });
-  } catch (error) {
-    Alert.alert('Error', 'Failed to update song.');
-    console.error(error);
-  }
-};
 
 const addSongToSetList = async (song) => {
   try {
@@ -823,7 +731,6 @@ const reorderSetList = async () => {
     await update(ref(database), updates);
   }
 };
-
 const clearSetList = async () => {
   Alert.alert(
     'Clear Set List',
@@ -848,212 +755,248 @@ const clearSetList = async () => {
   );
 };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Manager Dashboard</Text>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => setSettingsModalVisible(true)}
-        >
-          <Text style={styles.settingsButtonText}>⚙️</Text>
-        </TouchableOpacity>
+// ----------------------------
+// Helper function
+const isSongInSetList = (songId) => {
+  return setListItems.some(item => item.songId === songId);
+};
+
+// Render function for Master List items with card layout
+const renderMasterListItem = ({ item }) => (
+  <View style={styles.masterListCard}>
+    <View style={styles.masterListHeader}>
+      <View style={styles.masterListInfo}>
+        <Text style={styles.masterListTitle}>
+          {item.title}
+          {item.isLineDance && ' 👢'}
+        </Text>
+        <Text style={styles.masterListArtist}>{item.artist}</Text>
       </View>
+      <Text style={styles.masterListPrice}>${item.price}</Text>
+    </View>
 
-     {/* Tab Navigation */}
-<View style={styles.tabContainer}>
-  <TouchableOpacity
-    style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
-    onPress={() => setActiveTab('pending')}
-  >
-    <Text style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
-      Pending ({pendingRequests.length})
-    </Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity
-    style={[styles.tab, activeTab === 'confirmed' && styles.activeTab]}
-    onPress={() => setActiveTab('confirmed')}
-  >
-    <Text style={[styles.tabText, activeTab === 'confirmed' && styles.activeTabText]}>
-      Queue ({confirmedRequests.length})
-    </Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity
-    style={[styles.tab, activeTab === 'masterList' && styles.activeTab]}
-    onPress={() => setActiveTab('masterList')}
-  >
-    <Text style={[styles.tabText, activeTab === 'masterList' && styles.activeTabText]}>
-      Master ({songs.length})
-    </Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity
-    style={[styles.tab, activeTab === 'setList' && styles.activeTab]}
-    onPress={() => setActiveTab('setList')}
-  >
-    <Text style={[styles.tabText, activeTab === 'setList' && styles.activeTabText]}>
-      Set List
-    </Text>
-  </TouchableOpacity>
-</View>
-
-
-
-
-      {/* Content based on active tab */}
-      {activeTab === 'pending' && (
-        <FlatList
-          data={pendingRequests}
-          renderItem={renderPendingRequest}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No pending requests</Text>
-          }
-        />
-      )}
-
-      {activeTab === 'confirmed' && (
-        <FlatList
-          data={confirmedRequests}
-          renderItem={renderConfirmedRequest}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No confirmed requests</Text>
-          }
-        />
-      )}
-
-
-{activeTab === 'masterList' && (
-  <>
-    <View style={styles.filterRow}>
+    <View style={styles.toggleRow}>
       <TouchableOpacity
-        style={[styles.filterButton, showLineDanceOnly && styles.filterButtonActive]}
-        onPress={() => setShowLineDanceOnly(!showLineDanceOnly)}
+        style={[styles.toggleButton, item.isLineDance && styles.toggleButtonActive]}
+        onPress={() => toggleLineDance(item)}
       >
-        <Text style={styles.filterButtonText}>
-          👢 Line Dance Only
+        <Text style={styles.toggleButtonText}>
+          {item.isLineDance ? '✓' : ''} Line Dance
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.filterButton, showRequestableOnly && styles.filterButtonActive]}
-        onPress={() => setShowRequestableOnly(!showRequestableOnly)}
+        style={[styles.toggleButton, item.isRequestable && styles.toggleButtonActive]}
+        onPress={() => toggleRequestable(item)}
       >
-        <Text style={styles.filterButtonText}>
-          ✓ Requestable Only
+        <Text style={styles.toggleButtonText}>
+          {item.isRequestable ? '✓' : ''} Requestable
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.toggleButton, isSongInSetList(item.id) && styles.toggleButtonActive]}
+        onPress={async () => {
+          const setListRef = ref(database, `bands/${bandId}/setList`);
+          const existingSetItem = setListItems.find(slItem => slItem.songId === item.id);
+
+          try {
+            if (existingSetItem) {
+              // Remove from set list
+              await remove(ref(database, `bands/${bandId}/setList/${existingSetItem.id}`));
+            } else {
+              // Add to set list
+              const newItemRef = push(setListRef);
+              await set(newItemRef, {
+                id: newItemRef.key,
+                order: setListItems.length,
+                type: 'song',
+                songId: item.id,
+                createdAt: Date.now(),
+              });
+            }
+          } catch (error) {
+            console.error('Error toggling song in set list:', error);
+            Alert.alert('Error', 'Could not update set list.');
+          }
+        }}
+      >
+        <Text style={styles.toggleButtonText}>
+          {isSongInSetList(item.id) ? '✓ In Set List' : '+ Set List'}
         </Text>
       </TouchableOpacity>
     </View>
 
-    <TouchableOpacity
-      style={styles.addSongButton}
-      onPress={() => setSongModalVisible(true)}
-    >
-      <Text style={styles.addSongButtonText}>+ Add New Song</Text>
-    </TouchableOpacity>
-
-    <FlatList
-      data={songs.filter(song => {
-        if (showLineDanceOnly && !song.isLineDance) return false;
-        if (showRequestableOnly && !song.isRequestable) return false;
-        return true;
-      })}
-      renderItem={renderMasterListItem}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContainer}
-      ListEmptyComponent={
-        <Text style={styles.emptyText}>No songs in master list</Text>
-      }
-    />
-  </>
-)}
-
-      {activeTab === 'masterList' && (
-  <>
-    <View style={styles.filterRow}>
+    <View style={styles.buttonRow}>
       <TouchableOpacity
-        style={[styles.filterButton, showLineDanceOnly && styles.filterButtonActive]}
-        onPress={() => setShowLineDanceOnly(!showLineDanceOnly)}
+        style={[styles.button, styles.editButton]}
+        onPress={() => openEditSong(item)}
       >
-        <Text style={styles.filterButtonText}>👢 Line Dance</Text>
+        <Text style={styles.buttonText}>✎ Edit</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.filterButton, showRequestableOnly && styles.filterButtonActive]}
-        onPress={() => setShowRequestableOnly(!showRequestableOnly)}
+        style={[styles.button, styles.deleteButton]}
+        onPress={() => deleteSong(item)}
       >
-        <Text style={styles.filterButtonText}>✓ Requestable</Text>
+        <Text style={styles.buttonText}>✕ Delete</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+
+// ----------------------------
+// JSX RETURN
+return (
+  <View style={styles.container}>
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Manager Dashboard</Text>
+      <TouchableOpacity
+        style={styles.settingsButton}
+        onPress={() => setSettingsModalVisible(true)}
+      >
+        <Text style={styles.settingsButtonText}>⚙️</Text>
       </TouchableOpacity>
     </View>
 
-    <TouchableOpacity
-      style={styles.addSongButton}
-      onPress={() => setSongModalVisible(true)}
-    >
-      <Text style={styles.addSongButtonText}>+ Add New Song</Text>
-    </TouchableOpacity>
-
-    <FlatList
-      data={songs.filter(song => {
-        if (showLineDanceOnly && !song.isLineDance) return false;
-        if (showRequestableOnly && !song.isRequestable) return false;
-        return true;
-      })}
-      renderItem={renderMasterListItem}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContainer}
-      ListEmptyComponent={
-        <Text style={styles.emptyText}>No songs in master list</Text>
-      }
-    />
-  </>
-)}
-
-{activeTab === 'setList' && (
-  <>
-    <View style={styles.setListControls}>
+    {/* Tab Navigation */}
+    <View style={styles.tabContainer}>
       <TouchableOpacity
-        style={[styles.controlButton, styles.addSongToSetButton]}
-        onPress={() => setAddSongToSetListModalVisible(true)}
+        style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
+        onPress={() => setActiveTab('pending')}
       >
-        <Text style={styles.controlButtonText}>+ Add Song</Text>
+        <Text style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
+          Pending ({pendingRequests.length})
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.controlButton, styles.addBreakButton]}
-        onPress={() => setBreakModalVisible(true)}
+        style={[styles.tab, activeTab === 'confirmed' && styles.activeTab]}
+        onPress={() => setActiveTab('confirmed')}
       >
-        <Text style={styles.controlButtonText}>+ Add Break</Text>
+        <Text style={[styles.tabText, activeTab === 'confirmed' && styles.activeTabText]}>
+          Queue ({confirmedRequests.length})
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.controlButton, styles.clearSetListButton]}
-        onPress={clearSetList}
+        style={[styles.tab, activeTab === 'masterList' && styles.activeTab]}
+        onPress={() => setActiveTab('masterList')}
       >
-        <Text style={styles.controlButtonText}>Clear All</Text>
+        <Text style={[styles.tabText, activeTab === 'masterList' && styles.activeTabText]}>
+          Master ({songs.length})
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'setList' && styles.activeTab]}
+        onPress={() => setActiveTab('setList')}
+      >
+        <Text style={[styles.tabText, activeTab === 'setList' && styles.activeTabText]}>
+          Set List
+        </Text>
       </TouchableOpacity>
     </View>
 
-    <FlatList
-      data={setListItems}
-      renderItem={renderSetListItem}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContainer}
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🎵</Text>
-          <Text style={styles.emptyText}>No set list yet</Text>
-          <Text style={styles.emptySubtext}>Add songs and breaks to create tonight's set list</Text>
+    {/* ------------------- Tab Content ------------------- */}
+    {activeTab === 'pending' && (
+      <FlatList
+        data={pendingRequests}
+        renderItem={renderPendingRequest}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={<Text style={styles.emptyText}>No pending requests</Text>}
+      />
+    )}
+
+    {activeTab === 'confirmed' && (
+      <FlatList
+        data={confirmedRequests}
+        renderItem={renderConfirmedRequest}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={<Text style={styles.emptyText}>No confirmed requests</Text>}
+      />
+    )}
+
+    {activeTab === 'masterList' && (
+      <>
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            style={[styles.filterButton, showLineDanceOnly && styles.filterButtonActive]}
+            onPress={() => setShowLineDanceOnly(!showLineDanceOnly)}
+          >
+            <Text style={styles.filterButtonText}>👢 Line Dance Only</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterButton, showRequestableOnly && styles.filterButtonActive]}
+            onPress={() => setShowRequestableOnly(!showRequestableOnly)}
+          >
+            <Text style={styles.filterButtonText}>✓ Requestable Only</Text>
+          </TouchableOpacity>
         </View>
-      }
-    />
-  </>
-)}
+
+        <TouchableOpacity
+          style={styles.addSongButton}
+          onPress={() => setSongModalVisible(true)}
+        >
+          <Text style={styles.addSongButtonText}>+ Add New Song</Text>
+        </TouchableOpacity>
+
+        <FlatList
+          data={songs.filter(song => {
+            if (showLineDanceOnly && !song.isLineDance) return false;
+            if (showRequestableOnly && !song.isRequestable) return false;
+            return true;
+          })}
+          renderItem={renderMasterListItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={<Text style={styles.emptyText}>No songs in master list</Text>}
+        />
+      </>
+    )}
+
+    {activeTab === 'setList' && (
+      <>
+        <View style={styles.setListControls}>
+          <TouchableOpacity
+            style={[styles.controlButton, styles.addBreakButton]}
+            onPress={() => setBreakModalVisible(true)}
+          >
+            <Text style={styles.controlButtonText}>+ Add Break</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.controlButton, styles.clearSetListButton]}
+            onPress={clearSetList}
+          >
+            <Text style={styles.controlButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={setListItems}
+          renderItem={renderSetListItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🎵</Text>
+              <Text style={styles.emptyText}>No set list yet</Text>
+              <Text style={styles.emptySubtext}>
+                Add songs and breaks to create tonight's set list
+              </Text>
+            </View>
+          }
+        />
+      </>
+    )}
+  
+);
+
 
       {/* Settings Modal */}
       <Modal
@@ -1235,44 +1178,6 @@ const clearSetList = async () => {
           </View>
         </View>
       </Modal>
-{/* Add Song to Set List Modal */}
-<Modal
-  visible={addSongToSetListModalVisible}
-  animationType="slide"
-  transparent={true}
-  onRequestClose={() => setAddSongToSetListModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Add Song to Set List</Text>
-      
-      <FlatList
-        data={songs.sort((a, b) => a.title.localeCompare(b.title))}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.songSelectItem}
-            onPress={() => addSongToSetList(item)}
-          >
-            <Text style={styles.songSelectTitle}>
-              {item.title}
-              {item.isLineDance && ' 👢'}
-            </Text>
-            <Text style={styles.songSelectArtist}>{item.artist}</Text>
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id}
-        style={styles.songSelectList}
-      />
-
-      <TouchableOpacity
-        style={styles.cancelButton}
-        onPress={() => setAddSongToSetListModalVisible(false)}
-      >
-        <Text style={styles.cancelButtonText}>Cancel</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
 
 {/* Add Break Modal */}
 <Modal
@@ -1356,10 +1261,9 @@ const clearSetList = async () => {
     </View>
   </SafeAreaView>
 </Modal>
-
-    </View>
-  );
-
+</View>
+);
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -1607,7 +1511,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
       marginBottom: 10,
     paddingVertical: 25,
-    alignItems: 'center'
+    alignItems: 'center',
     },
   resetButton: {
   backgroundColor: '#ff9800',
@@ -1625,7 +1529,6 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
   },
-
 loadingContainer: {
   flex: 1,
   backgroundColor: '#1a1a1a',
@@ -1637,17 +1540,6 @@ loadingText: {
   marginTop: 10,
   fontSize: 16,
 },
-loadingContainer: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#fff',
-    marginTop: 10,
-    fontSize: 16,
-  },
   filterRow: {
   flexDirection: 'row',
   padding: 15,
@@ -1726,84 +1618,6 @@ toggleButtonText: {
   fontSize: 13,
   fontWeight: 'bold',
 },
-filterRow: {
-    flexDirection: 'row',
-    padding: 15,
-    gap: 10,
-  },
-  filterButton: {
-    flex: 1,
-    backgroundColor: '#2a2a2a',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#2a2a2a',
-  },
-  filterButtonActive: {
-    borderColor: '#2c5282',
-    backgroundColor: '#1a3a5a',
-  },
-  filterButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  masterListCard: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2c5282',
-  },
-  masterListHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  masterListInfo: {
-    flex: 1,
-  },
-  masterListTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  masterListArtist: {
-    fontSize: 14,
-    color: '#aaa',
-  },
-  masterListPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  toggleButton: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    padding: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#444',
-  },
-  toggleButtonActive: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#1a3a1a',
-  },
-  toggleButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1834,7 +1648,7 @@ filterRow: {
     backgroundColor: '#4CAF50',
   },
   addBreakButton: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#CC9900',
   },
   clearSetListButton: {
     backgroundColor: '#f44336',
