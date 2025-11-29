@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { database } from '../../firebaseConfig';
 import { ref, onValue } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';

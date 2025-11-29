@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  SafeAreaView,
   Platform,
   StatusBar,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Header({ bandName, logoUrl, queueCount, onQueuePress, onBackPress }) {
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
