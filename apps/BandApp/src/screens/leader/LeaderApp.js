@@ -12,42 +12,58 @@ import {
 } from 'react-native';
 import { database } from '../../../firebaseConfig';
 import { ref, onValue, update } from 'firebase/database';
+import { auth } from '../../../firebaseConfig';
+import { ActivityIndicator } from 'react-native';
+  
 
 export default function BandLeaderApp() {
   const [confirmedRequests, setConfirmedRequests] = useState([]);
   const [settings, setSettings] = useState({});
   const [refreshing, setRefreshing] = useState(false);
-
+  const [bandId, setBandId] = useState(null);
+  
   useEffect(() => {
-    // Load only confirmed requests
-    const requestsRef = ref(database, 'requests');
-    onValue(requestsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const confirmed = Object.values(data)
-          .filter(req => req.status === 'confirmed')
-          .sort((a, b) => {
-            // Priority songs first
-            if (a.priorityBoost && !b.priorityBoost) return -1;
-            if (!a.priorityBoost && b.priorityBoost) return 1;
-            // Then by timestamp
-            return a.timestamp - b.timestamp;
-          });
-        setConfirmedRequests(confirmed);
-      } else {
-        setConfirmedRequests([]);
-      }
-    });
+  const user = auth.currentUser;
+  if (user) {
+    setBandId(user.uid);
+  }
+}, []);
 
-    // Load settings
-    const settingsRef = ref(database, 'settings');
-    onValue(settingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSettings(data);
-      }
-    });
-  }, []);
+useEffect(() => {
+  if (!bandId) return; // DON'T load data until we have bandId
+  
+  // Load only confirmed requests
+  const requestsRef = ref(database, `bands/${bandId}/requests`); // ← CHANGED
+  const unsubscribe = onValue(requestsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      const confirmed = Object.values(data)
+        .filter(req => req.status === 'confirmed')
+        .sort((a, b) => {
+          if (a.priorityBoost && !b.priorityBoost) return -1;
+          if (!a.priorityBoost && b.priorityBoost) return 1;
+          return a.timestamp - b.timestamp;
+        });
+      setConfirmedRequests(confirmed);
+    } else {
+      setConfirmedRequests([]);
+    }
+  });
+
+  // Load settings
+  const settingsRef = ref(database, `bands/${bandId}/settings`); // ← CHANGED
+  const settingsUnsub = onValue(settingsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      setSettings(data);
+    }
+  });
+
+  return () => {
+    unsubscribe();
+    settingsUnsub();
+  };
+}, [bandId]); // ← IMPORTANT: Re-run when bandId changes
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -56,7 +72,7 @@ export default function BandLeaderApp() {
 
   const markAsPlayed = async (request) => {
   try {
-    const requestRef = ref(database, `requests/${request.id}`);
+    const requestRef = ref(database, `bands/${bandId}/requests/${request.id}`);
     await update(requestRef, {
       status: 'played',
       playedTimestamp: Date.now()
@@ -109,6 +125,15 @@ export default function BandLeaderApp() {
     </View>
   );
 
+if (!bandId) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#9C27B0" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -149,6 +174,7 @@ export default function BandLeaderApp() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -314,5 +340,96 @@ const styles = StyleSheet.create({
   emptySubtext: {
     color: '#666',
     fontSize: 14,
+  },
+
+  filterRow: {
+  flexDirection: 'row',
+  padding: 15,
+  gap: 10,
+},
+
+filterButton: {
+  flex: 1,
+  backgroundColor: '#2a2a2a',
+  padding: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+  borderWidth: 2,
+  borderColor: '#2a2a2a',
+},
+filterButtonActive: {
+  borderColor: '#2c5282',
+  backgroundColor: '#1a3a5a',
+},
+filterButtonText: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: 'bold',
+},
+masterListCard: {
+  backgroundColor: '#2a2a2a',
+  borderRadius: 12,
+  padding: 15,
+  marginBottom: 15,
+  borderLeftWidth: 4,
+  borderLeftColor: '#2c5282',
+},
+masterListHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 12,
+},
+masterListInfo: {
+  flex: 1,
+},
+masterListTitle: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  color: '#fff',
+  marginBottom: 4,
+},
+masterListArtist: {
+  fontSize: 14,
+  color: '#aaa',
+},
+masterListPrice: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#4CAF50',
+},
+toggleRow: {
+  flexDirection: 'row',
+  gap: 10,
+  marginBottom: 12,
+},
+toggleButton: {
+  flex: 1,
+  backgroundColor: '#1a1a1a',
+  padding: 10,
+  borderRadius: 6,
+  alignItems: 'center',
+  borderWidth: 2,
+  borderColor: '#444',
+},
+toggleButtonActive: {
+  borderColor: '#4CAF50',
+  backgroundColor: '#1a3a1a',
+},
+toggleButtonText: {
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: 'bold',
+},
+loadingContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 10,
+    fontSize: 16,
   },
 });

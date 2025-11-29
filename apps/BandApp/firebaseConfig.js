@@ -1,13 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
-// ❌ REMOVE these imports (Expo Go cannot use them)
-// import { 
-//   getReactNativePersistence,
-//   initializeAuth
-// } from 'firebase/auth';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-
 const firebaseConfig = {
   apiKey: "AIzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
   authDomain: "the-juke---nashville.firebaseapp.com",
@@ -21,24 +14,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
+// Mock auth for Expo Go testing
 const auth = {
-  currentUser: null,
-
-  // Immediately call the callback so App.js stops "loading"
+  currentUser: { uid: "dev-testing-user" },
   onAuthStateChanged: (cb) => {
-    cb(null); // Always "logged out"
+    cb({ uid: "dev-testing-user" }); // Fake logged-in user
     return () => {};
   },
-
   signInWithEmailAndPassword: async () => {
     console.warn("Firebase Auth disabled: using Expo Go");
-    return { user: null };
+    return { user: { uid: "dev-testing-user" } };
   },
-
   signOut: async () => {
     console.warn("Firebase Auth disabled: using Expo Go");
   },
 };
-
 
 export { app, database, auth };

@@ -14,8 +14,13 @@ import {
 } from 'react-native';
 import { database } from '../../../firebaseConfig';
 import { ref, onValue, update, remove, push, set, get } from 'firebase/database';
+import { auth } from '../../../firebaseConfig';
+import { ActivityIndicator } from 'react-native';
+
+
 
 export default function ManagerApp() {
+  const [bandId, setBandId] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [confirmedRequests, setConfirmedRequests] = useState([]);
   const [songs, setSongs] = useState([]);
@@ -41,9 +46,19 @@ export default function ManagerApp() {
   const [editSongPrice, setEditSongPrice] = useState('');
 
   useEffect(() => {
+    // Get bandId from authenticated user
+    const user = auth.currentUser;
+    if (user) {
+      setBandId(user.uid);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!bandId) return; // Don't load until we have bandId
+
     // Load all requests
-    const requestsRef = ref(database, 'requests');
-    onValue(requestsRef, (snapshot) => {
+    const requestsRef = ref(database, `bands/${bandId}/requests`);
+    const requestsUnsub = onValue(requestsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const allRequests = Object.values(data);
@@ -79,8 +94,8 @@ export default function ManagerApp() {
     });
 
     // Load songs
-    const songsRef = ref(database, 'songs');
-    onValue(songsRef, (snapshot) => {
+    const songsRef = ref(database, `bands/${bandId}/songs`);
+    const songsUnsub = onValue(songsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const songList = Object.values(data).sort((a, b) => 
@@ -93,8 +108,8 @@ export default function ManagerApp() {
     });
 
     // Load settings
-    const settingsRef = ref(database, 'settings');
-    onValue(settingsRef, (snapshot) => {
+    const settingsRef = ref(database, `bands/${bandId}/settings`);
+    const settingsUnsub = onValue(settingsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setSettings(data);
@@ -103,7 +118,13 @@ export default function ManagerApp() {
         setNewVenmoUsername(data.venmoUsername || '');
       }
     });
-  }, [previousPendingCount]);
+
+    return () => {
+      requestsUnsub();
+      songsUnsub();
+      settingsUnsub();
+    };
+  }, [bandId, previousPendingCount]);
 
   const confirmPayment = async (request) => {
     Alert.alert(
@@ -115,7 +136,7 @@ export default function ManagerApp() {
           text: 'Confirm',
           onPress: async () => {
             try {
-              const requestRef = ref(database, `requests/${request.id}`);
+              const requestRef = ref(database, `bands/${bandId}/requests/${request.id}`);
               await update(requestRef, { status: 'confirmed' });
               Alert.alert('Success', 'Payment confirmed!');
             } catch (error) {
@@ -138,7 +159,7 @@ export default function ManagerApp() {
           text: 'Mark Played',
           onPress: async () => {
             try {
-              const requestRef = ref(database, `requests/${request.id}`);
+              const requestRef = ref(database, `bands/${bandId}/requests/${request.id}`);
               await update(requestRef, {
                 status: 'played',
                 playedTimestamp: Date.now()
@@ -165,7 +186,7 @@ export default function ManagerApp() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const requestRef = ref(database, `requests/${request.id}`);
+              const requestRef = ref(database, `bands/${bandId}/requests/${request.id}`);
               await remove(requestRef);
               Alert.alert('Success', 'Request deleted.');
             } catch (error) {
@@ -198,7 +219,7 @@ export default function ManagerApp() {
   }
 
   try {
-    const settingsRef = ref(database, 'settings');
+    const settingsRef = ref(database, `bands/${bandId}/settings`);
     await update(settingsRef, { 
       priorityBoostPrice: price,
       maxRequests: maxReq,
@@ -222,14 +243,14 @@ export default function ManagerApp() {
         text: 'Clear Played Songs Only',
         onPress: async () => {
           try {
-            const requestsRef = ref(database, 'requests');
+            const requestsRef = ref(database, `bands/${bandId}/requests`);
             const snapshot = await get(requestsRef);
             const data = snapshot.val();
             
             if (data) {
               const deletePromises = Object.keys(data)
                 .filter(key => data[key].status === 'played')
-                .map(key => remove(ref(database, `requests/${key}`)));
+                .map(key => remove(ref(database, `bands/${bandId}/requests/${key}`)));
               
               await Promise.all(deletePromises);
               Alert.alert('Success', 'Played songs cleared!');
@@ -247,7 +268,7 @@ export default function ManagerApp() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const requestsRef = ref(database, 'requests');
+            const requestsRef = ref(database, `bands/${bandId}/requests`);
             await remove(requestsRef);
             Alert.alert('Success', 'Queue completely reset for new show!');
           } catch (error) {
@@ -272,7 +293,7 @@ export default function ManagerApp() {
     }
 
     try {
-      const songsRef = ref(database, 'songs');
+      const songsRef = ref(database, `bands/${bandId}/songs`);
       const newSongRef = push(songsRef);
       
       await set(newSongRef, {
@@ -315,7 +336,7 @@ export default function ManagerApp() {
     }
 
     try {
-      const songRef = ref(database, `songs/${editingSong.id}`);
+      const songRef = ref(database, `bands/${bandId}/songs/${editingSong.id}`);
       await update(songRef, {
         title: editSongTitle.trim(),
         artist: editSongArtist.trim(),
@@ -342,7 +363,7 @@ export default function ManagerApp() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const songRef = ref(database, `songs/${song.id}`);
+              const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
               await remove(songRef);
               Alert.alert('Success', 'Song removed from catalog.');
             } catch (error) {
@@ -464,6 +485,17 @@ export default function ManagerApp() {
       </View>
     </View>
   );
+
+if (!bandId) {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#2c5282" />
+      <Text style={styles.loadingText}>Loading band data...</Text>
+    </View>
+  );
+}
+
+
 
   return (
     <View style={styles.container}>
@@ -989,6 +1021,29 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: '#666',
+    fontSize: 16,
+  },
+
+loadingContainer: {
+  flex: 1,
+  backgroundColor: '#1a1a1a',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+loadingText: {
+  color: '#fff',
+  marginTop: 10,
+  fontSize: 16,
+},
+loadingContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 10,
     fontSize: 16,
   },
 });
