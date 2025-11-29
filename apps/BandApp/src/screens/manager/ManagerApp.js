@@ -14,8 +14,13 @@ import {
 } from 'react-native';
 import { database } from '../../../firebaseConfig';
 import { ref, onValue, update, remove, push, set, get } from 'firebase/database';
-import { auth } from '../../../firebaseConfig';
 import { ActivityIndicator } from 'react-native';
+import { auth } from '../../../firebaseConfig';
+import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native';
+
+export default function ManagerApp() {
+  const [bandId, setBandId] = useState(null);
 
 
 
@@ -32,7 +37,7 @@ export default function ManagerApp() {
   const [newMaxRequests, setNewMaxRequests] = useState('');
   const [newVenmoUsername, setNewVenmoUsername] = useState('');
   const [previousPendingCount, setPreviousPendingCount] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'songs'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'masterList', 'setList'
   
   // New song form
   const [newSongTitle, setNewSongTitle] = useState('');
@@ -44,6 +49,26 @@ export default function ManagerApp() {
   const [editSongTitle, setEditSongTitle] = useState('');
   const [editSongArtist, setEditSongArtist] = useState('');
   const [editSongPrice, setEditSongPrice] = useState('');
+  const [activeTab, setActiveTab] = useState('pending'); // Update this line
+// Change to: 'pending', 'confirmed', 'masterList', 'setList'
+
+// Add new state for Master List
+const [showLineDanceOnly, setShowLineDanceOnly] = useState(false);
+const [showRequestableOnly, setShowRequestableOnly] = useState(false);
+
+// Master List filters
+const [showLineDanceOnly, setShowLineDanceOnly] = useState(false);
+const [showRequestableOnly, setShowRequestableOnly] = useState(false);
+
+// Set List state
+const [setListItems, setSetListItems] = useState([]);
+const [setListModalVisible, setSetListModalVisible] = useState(false);
+const [addSongToSetListModalVisible, setAddSongToSetListModalVisible] = useState(false);
+const [breakModalVisible, setBreakModalVisible] = useState(false);
+const [breakDuration, setBreakDuration] = useState('15');
+
+const [qrModalVisible, setQrModalVisible] = useState(false);
+const [bandSlug, setBandSlug] = useState('');
 
   useEffect(() => {
     // Get bandId from authenticated user
@@ -55,6 +80,18 @@ export default function ManagerApp() {
 
   useEffect(() => {
     if (!bandId) return; // Don't load until we have bandId
+
+    // Load set list
+const setListRef = ref(database, `bands/${bandId}/setList`);
+const setListUnsub = onValue(setListRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    const items = Object.values(data).sort((a, b) => a.order - b.order);
+    setSetListItems(items);
+  } else {
+    setSetListItems([]);
+  }
+});
 
     // Load all requests
     const requestsRef = ref(database, `bands/${bandId}/requests`);
@@ -119,11 +156,28 @@ export default function ManagerApp() {
       }
     });
 
+    // Load band slug from directory
+const user = auth.currentUser;
+if (user) {
+  const bandDirRef = ref(database, 'bandDirectory');
+  const bandDirUnsub = onValue(bandDirRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      // Find our band in directory
+      const ourBand = Object.values(data).find(b => b.bandId === user.uid);
+      if (ourBand) {
+        setBandSlug(ourBand.bandSlug || '');
+      }
+    }
+  });
+}
+
     return () => {
-      requestsUnsub();
-      songsUnsub();
-      settingsUnsub();
-    };
+  requestsUnsub();
+  songsUnsub();
+  settingsUnsub();
+  setListUnsub(); 
+};
   }, [bandId, previousPendingCount]);
 
   const confirmPayment = async (request) => {
@@ -280,29 +334,43 @@ export default function ManagerApp() {
     ]
   );
 };
+
   const addSong = async () => {
-    if (!newSongTitle.trim() || !newSongArtist.trim()) {
-      Alert.alert('Missing Info', 'Please enter both title and artist.');
-      return;
-    }
+  if (!newSongTitle.trim() || !newSongArtist.trim()) {
+    Alert.alert('Missing Info', 'Please enter both title and artist.');
+    return;
+  }
 
-    const price = parseFloat(newSongPrice);
-    if (isNaN(price) || price < 0) {
-      Alert.alert('Invalid Price', 'Please enter a valid price.');
-      return;
-    }
+  const price = parseFloat(newSongPrice);
+  if (isNaN(price) || price < 0) {
+    Alert.alert('Invalid Price', 'Please enter a valid price.');
+    return;
+  }
 
-    try {
-      const songsRef = ref(database, `bands/${bandId}/songs`);
-      const newSongRef = push(songsRef);
-      
-      await set(newSongRef, {
+  try {
+    const songsRef = ref(database, `bands/${bandId}/songs`);
+    const newSongRef = push(songsRef);
+
+    await set(newSongRef, {
   id: newSongRef.key,
   title: newSongTitle.trim(),
   artist: newSongArtist.trim(),
   price: parseFloat(newSongPrice),
-  appKey: "MY_SECRET_APP_KEY"
+  isLineDance: false,        // NEW: Default to false
+  isRequestable: true,        // NEW: Default to true
+  createdAt: Date.now()       // NEW: Track when added
 });
+
+    Alert.alert('Success', 'Song added to master list!');
+    setNewSongTitle('');
+    setNewSongArtist('');
+    setNewSongPrice('5');
+    setSongModalVisible(false);
+  } catch (error) {
+    Alert.alert('Error', 'Failed to add song.');
+    console.error(error);
+  }
+};
 
       Alert.alert('Success', 'Song added to catalog!');
       setNewSongTitle('');
@@ -375,6 +443,30 @@ export default function ManagerApp() {
       ]
     );
   };
+
+  const toggleLineDance = async (song) => {
+  try {
+    const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
+    await update(songRef, {
+      isLineDance: !song.isLineDance
+    });
+  } catch (error) {
+    Alert.alert('Error', 'Failed to update song.');
+    console.error(error);
+  }
+};
+
+const toggleRequestable = async (song) => {
+  try {
+    const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
+    await update(songRef, {
+      isRequestable: !song.isRequestable
+    });
+  } catch (error) {
+    Alert.alert('Error', 'Failed to update song.');
+    console.error(error);
+  }
+};
 
   const renderPendingRequest = ({ item }) => (
     <View style={styles.requestCard}>
@@ -458,33 +550,131 @@ export default function ManagerApp() {
     </View>
   );
 
-  const renderSongItem = ({ item }) => (
-    <View style={styles.songCard}>
-      <View style={styles.songCardHeader}>
-        <View style={styles.songCardInfo}>
-          <Text style={styles.songCardTitle}>{item.title}</Text>
-          <Text style={styles.songCardArtist}>{item.artist}</Text>
-        </View>
-        <Text style={styles.songCardPrice}>${item.price}</Text>
+  const renderMasterListItem = ({ item }) => (
+  <View style={styles.masterListCard}>
+    <View style={styles.masterListHeader}>
+      <View style={styles.masterListInfo}>
+        <Text style={styles.masterListTitle}>
+          {item.title}
+          {item.isLineDance && ' 👢'}
+        </Text>
+        <Text style={styles.masterListArtist}>{item.artist}</Text>
       </View>
-      
-      <View style={styles.buttonRow}>
+      <Text style={styles.masterListPrice}>${item.price}</Text>
+    </View>
+
+    <View style={styles.toggleRow}>
+      <TouchableOpacity
+        style={[styles.toggleButton, item.isLineDance && styles.toggleButtonActive]}
+        onPress={() => toggleLineDance(item)}
+      >
+        <Text style={styles.toggleButtonText}>
+          {item.isLineDance ? '✓' : ''} Line Dance
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.toggleButton, item.isRequestable && styles.toggleButtonActive]}
+        onPress={() => toggleRequestable(item)}
+      >
+        <Text style={styles.toggleButtonText}>
+          {item.isRequestable ? '✓' : ''} Requestable
+        </Text>
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles.buttonRow}>
+      <TouchableOpacity
+        style={[styles.button, styles.editButton]}
+        onPress={() => openEditSong(item)}
+      >
+        <Text style={styles.buttonText}>✎ Edit</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, styles.deleteButton]}
+        onPress={() => deleteSong(item)}
+      >
+        <Text style={styles.buttonText}>✕ Delete</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const renderSetListItem = ({ item, index }) => {
+  if (item.type === 'break') {
+    return (
+      <View style={styles.setListCard}>
+        <Text style={styles.setListOrder}>{index + 1}</Text>
+        <View style={styles.setListInfo}>
+          <Text style={styles.setListBreakText}>🎵 Break</Text>
+          <Text style={styles.setListBreakDuration}>{item.breakDuration} minutes</Text>
+        </View>
+        <View style={styles.setListActions}>
+          <TouchableOpacity
+            style={styles.moveButton}
+            onPress={() => moveSetListItem(index, 'up')}
+            disabled={index === 0}
+          >
+            <Text style={styles.moveButtonText}>↑</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moveButton}
+            onPress={() => moveSetListItem(index, 'down')}
+            disabled={index === setListItems.length - 1}
+          >
+            <Text style={styles.moveButtonText}>↓</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => removeFromSetList(item.id)}
+          >
+            <Text style={styles.removeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Song item
+  const song = songs.find(s => s.id === item.songId);
+  if (!song) return null;
+
+  return (
+    <View style={styles.setListCard}>
+      <Text style={styles.setListOrder}>{index + 1}</Text>
+      <View style={styles.setListInfo}>
+        <Text style={styles.setListTitle}>
+          {song.title}
+          {song.isLineDance && ' 👢'}
+        </Text>
+        <Text style={styles.setListArtist}>{song.artist}</Text>
+      </View>
+      <View style={styles.setListActions}>
         <TouchableOpacity
-          style={[styles.button, styles.editButton]}
-          onPress={() => openEditSong(item)}
+          style={styles.moveButton}
+          onPress={() => moveSetListItem(index, 'up')}
+          disabled={index === 0}
         >
-          <Text style={styles.buttonText}>✎ Edit</Text>
+          <Text style={styles.moveButtonText}>↑</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity
-          style={[styles.button, styles.deleteButton]}
-          onPress={() => deleteSong(item)}
+          style={styles.moveButton}
+          onPress={() => moveSetListItem(index, 'down')}
+          disabled={index === setListItems.length - 1}
         >
-          <Text style={styles.buttonText}>✕ Delete</Text>
+          <Text style={styles.moveButtonText}>↓</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => removeFromSetList(item.id)}
+        >
+          <Text style={styles.removeButtonText}>✕</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
+};
 
 if (!bandId) {
   return (
@@ -496,6 +686,167 @@ if (!bandId) {
 }
 
 
+const toggleLineDance = async (song) => {
+  try {
+    const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
+    await update(songRef, {
+      isLineDance: !song.isLineDance
+    });
+  } catch (error) {
+    Alert.alert('Error', 'Failed to update song.');
+    console.error(error);
+  }
+};
+
+const toggleRequestable = async (song) => {
+  try {
+    const songRef = ref(database, `bands/${bandId}/songs/${song.id}`);
+    await update(songRef, {
+      isRequestable: !song.isRequestable
+    });
+  } catch (error) {
+    Alert.alert('Error', 'Failed to update song.');
+    console.error(error);
+  }
+};
+
+const addSongToSetList = async (song) => {
+  try {
+    const setListRef = ref(database, `bands/${bandId}/setList`);
+    const newItemRef = push(setListRef);
+    
+    await set(newItemRef, {
+      id: newItemRef.key,
+      order: setListItems.length,
+      type: 'song',
+      songId: song.id,
+      createdAt: Date.now()
+    });
+    
+    setAddSongToSetListModalVisible(false);
+  } catch (error) {
+    Alert.alert('Error', 'Failed to add song to set list.');
+    console.error(error);
+  }
+};
+
+const addBreakToSetList = async () => {
+  const duration = parseInt(breakDuration);
+  if (isNaN(duration) || duration < 1) {
+    Alert.alert('Invalid Duration', 'Please enter a valid break duration.');
+    return;
+  }
+
+  try {
+    const setListRef = ref(database, `bands/${bandId}/setList`);
+    const newItemRef = push(setListRef);
+    
+    await set(newItemRef, {
+      id: newItemRef.key,
+      order: setListItems.length,
+      type: 'break',
+      breakDuration: duration,
+      createdAt: Date.now()
+    });
+    
+    setBreakDuration('15');
+    setBreakModalVisible(false);
+  } catch (error) {
+    Alert.alert('Error', 'Failed to add break.');
+    console.error(error);
+  }
+};
+
+const removeFromSetList = async (itemId) => {
+  Alert.alert(
+    'Remove Item',
+    'Remove this item from set list?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const itemRef = ref(database, `bands/${bandId}/setList/${itemId}`);
+            await remove(itemRef);
+            
+            // Reorder remaining items
+            await reorderSetList();
+          } catch (error) {
+            Alert.alert('Error', 'Failed to remove item.');
+            console.error(error);
+          }
+        }
+      }
+    ]
+  );
+};
+
+const moveSetListItem = async (currentIndex, direction) => {
+  const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  
+  if (newIndex < 0 || newIndex >= setListItems.length) return;
+  
+  // Swap orders
+  const currentItem = setListItems[currentIndex];
+  const targetItem = setListItems[newIndex];
+  
+  try {
+    await update(ref(database, `bands/${bandId}/setList/${currentItem.id}`), {
+      order: newIndex
+    });
+    
+    await update(ref(database, `bands/${bandId}/setList/${targetItem.id}`), {
+      order: currentIndex
+    });
+  } catch (error) {
+    Alert.alert('Error', 'Failed to reorder items.');
+    console.error(error);
+  }
+};
+
+const reorderSetList = async () => {
+  // After removing an item, fix all order values
+  const setListRef = ref(database, `bands/${bandId}/setList`);
+  const snapshot = await get(setListRef);
+  const data = snapshot.val();
+  
+  if (data) {
+    const items = Object.values(data).sort((a, b) => a.order - b.order);
+    const updates = {};
+    
+    items.forEach((item, index) => {
+      updates[`bands/${bandId}/setList/${item.id}/order`] = index;
+    });
+    
+    await update(ref(database), updates);
+  }
+};
+
+const clearSetList = async () => {
+  Alert.alert(
+    'Clear Set List',
+    'Remove all songs and breaks from set list?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const setListRef = ref(database, `bands/${bandId}/setList`);
+            await remove(setListRef);
+            Alert.alert('Success', 'Set list cleared.');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to clear set list.');
+            console.error(error);
+          }
+        }
+      }
+    ]
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -509,35 +860,47 @@ if (!bandId) {
         </TouchableOpacity>
       </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
-          onPress={() => setActiveTab('pending')}
-        >
-          <Text style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
-            Pending ({pendingRequests.length})
-          </Text>
-        </TouchableOpacity>
+     {/* Tab Navigation */}
+<View style={styles.tabContainer}>
+  <TouchableOpacity
+    style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
+    onPress={() => setActiveTab('pending')}
+  >
+    <Text style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
+      Pending ({pendingRequests.length})
+    </Text>
+  </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'confirmed' && styles.activeTab]}
-          onPress={() => setActiveTab('confirmed')}
-        >
-          <Text style={[styles.tabText, activeTab === 'confirmed' && styles.activeTabText]}>
-            Confirmed ({confirmedRequests.length})
-          </Text>
-        </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.tab, activeTab === 'confirmed' && styles.activeTab]}
+    onPress={() => setActiveTab('confirmed')}
+  >
+    <Text style={[styles.tabText, activeTab === 'confirmed' && styles.activeTabText]}>
+      Queue ({confirmedRequests.length})
+    </Text>
+  </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'songs' && styles.activeTab]}
-          onPress={() => setActiveTab('songs')}
-        >
-          <Text style={[styles.tabText, activeTab === 'songs' && styles.activeTabText]}>
-            Songs ({songs.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
+  <TouchableOpacity
+    style={[styles.tab, activeTab === 'masterList' && styles.activeTab]}
+    onPress={() => setActiveTab('masterList')}
+  >
+    <Text style={[styles.tabText, activeTab === 'masterList' && styles.activeTabText]}>
+      Master ({songs.length})
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[styles.tab, activeTab === 'setList' && styles.activeTab]}
+    onPress={() => setActiveTab('setList')}
+  >
+    <Text style={[styles.tabText, activeTab === 'setList' && styles.activeTabText]}>
+      Set List
+    </Text>
+  </TouchableOpacity>
+</View>
+
+
+
 
       {/* Content based on active tab */}
       {activeTab === 'pending' && (
@@ -564,26 +927,133 @@ if (!bandId) {
         />
       )}
 
-      {activeTab === 'songs' && (
-        <>
-          <TouchableOpacity
-            style={styles.addSongButton}
-            onPress={() => setSongModalVisible(true)}
-          >
-            <Text style={styles.addSongButtonText}>+ Add New Song</Text>
-          </TouchableOpacity>
-          
-          <FlatList
-            data={songs}
-            renderItem={renderSongItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No songs in catalog</Text>
-            }
-          />
-        </>
-      )}
+
+{activeTab === 'masterList' && (
+  <>
+    <View style={styles.filterRow}>
+      <TouchableOpacity
+        style={[styles.filterButton, showLineDanceOnly && styles.filterButtonActive]}
+        onPress={() => setShowLineDanceOnly(!showLineDanceOnly)}
+      >
+        <Text style={styles.filterButtonText}>
+          👢 Line Dance Only
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.filterButton, showRequestableOnly && styles.filterButtonActive]}
+        onPress={() => setShowRequestableOnly(!showRequestableOnly)}
+      >
+        <Text style={styles.filterButtonText}>
+          ✓ Requestable Only
+        </Text>
+      </TouchableOpacity>
+    </View>
+
+    <TouchableOpacity
+      style={styles.addSongButton}
+      onPress={() => setSongModalVisible(true)}
+    >
+      <Text style={styles.addSongButtonText}>+ Add New Song</Text>
+    </TouchableOpacity>
+
+    <FlatList
+      data={songs.filter(song => {
+        if (showLineDanceOnly && !song.isLineDance) return false;
+        if (showRequestableOnly && !song.isRequestable) return false;
+        return true;
+      })}
+      renderItem={renderMasterListItem}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.listContainer}
+      ListEmptyComponent={
+        <Text style={styles.emptyText}>No songs in master list</Text>
+      }
+    />
+  </>
+)}
+
+      {activeTab === 'masterList' && (
+  <>
+    <View style={styles.filterRow}>
+      <TouchableOpacity
+        style={[styles.filterButton, showLineDanceOnly && styles.filterButtonActive]}
+        onPress={() => setShowLineDanceOnly(!showLineDanceOnly)}
+      >
+        <Text style={styles.filterButtonText}>👢 Line Dance</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.filterButton, showRequestableOnly && styles.filterButtonActive]}
+        onPress={() => setShowRequestableOnly(!showRequestableOnly)}
+      >
+        <Text style={styles.filterButtonText}>✓ Requestable</Text>
+      </TouchableOpacity>
+    </View>
+
+    <TouchableOpacity
+      style={styles.addSongButton}
+      onPress={() => setSongModalVisible(true)}
+    >
+      <Text style={styles.addSongButtonText}>+ Add New Song</Text>
+    </TouchableOpacity>
+
+    <FlatList
+      data={songs.filter(song => {
+        if (showLineDanceOnly && !song.isLineDance) return false;
+        if (showRequestableOnly && !song.isRequestable) return false;
+        return true;
+      })}
+      renderItem={renderMasterListItem}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.listContainer}
+      ListEmptyComponent={
+        <Text style={styles.emptyText}>No songs in master list</Text>
+      }
+    />
+  </>
+)}
+
+{activeTab === 'setList' && (
+  <>
+    <View style={styles.setListControls}>
+      <TouchableOpacity
+        style={[styles.controlButton, styles.addSongToSetButton]}
+        onPress={() => setAddSongToSetListModalVisible(true)}
+      >
+        <Text style={styles.controlButtonText}>+ Add Song</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.controlButton, styles.addBreakButton]}
+        onPress={() => setBreakModalVisible(true)}
+      >
+        <Text style={styles.controlButtonText}>+ Add Break</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.controlButton, styles.clearSetListButton]}
+        onPress={clearSetList}
+      >
+        <Text style={styles.controlButtonText}>Clear All</Text>
+      </TouchableOpacity>
+    </View>
+
+    <FlatList
+      data={setListItems}
+      renderItem={renderSetListItem}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.listContainer}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>🎵</Text>
+          <Text style={styles.emptyText}>No set list yet</Text>
+          <Text style={styles.emptySubtext}>Add songs and breaks to create tonight's set list</Text>
+        </View>
+      }
+    />
+  </>
+)}
 
       {/* Settings Modal */}
       <Modal
@@ -641,6 +1111,16 @@ if (!bandId) {
   onPress={resetQueue}
 >
   <Text style={styles.resetButtonText}>🔄 Reset Queue</Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={[styles.qrButton]}
+  onPress={() => {
+    setSettingsModalVisible(false);
+    setQrModalVisible(true);
+  }}
+>
+  <Text style={styles.qrButtonText}>📱 Generate QR Code</Text>
 </TouchableOpacity>
 
 <TouchableOpacity
@@ -755,9 +1235,131 @@ if (!bandId) {
           </View>
         </View>
       </Modal>
+{/* Add Song to Set List Modal */}
+<Modal
+  visible={addSongToSetListModalVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setAddSongToSetListModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Add Song to Set List</Text>
+      
+      <FlatList
+        data={songs.sort((a, b) => a.title.localeCompare(b.title))}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.songSelectItem}
+            onPress={() => addSongToSetList(item)}
+          >
+            <Text style={styles.songSelectTitle}>
+              {item.title}
+              {item.isLineDance && ' 👢'}
+            </Text>
+            <Text style={styles.songSelectArtist}>{item.artist}</Text>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item) => item.id}
+        style={styles.songSelectList}
+      />
+
+      <TouchableOpacity
+        style={styles.cancelButton}
+        onPress={() => setAddSongToSetListModalVisible(false)}
+      >
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+{/* Add Break Modal */}
+<Modal
+  visible={breakModalVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setBreakModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Add Break</Text>
+
+      <Text style={styles.settingLabel}>Duration (minutes)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="15"
+        placeholderTextColor="#999"
+        value={breakDuration}
+        onChangeText={setBreakDuration}
+        keyboardType="numeric"
+      />
+
+      <TouchableOpacity
+        style={styles.saveButton}
+        onPress={addBreakToSetList}
+      >
+        <Text style={styles.saveButtonText}>Add Break</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.cancelButton}
+        onPress={() => setBreakModalVisible(false)}
+      >
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+
+{/* QR Code Modal */}
+<Modal
+  visible={qrModalVisible}
+  animationType="slide"
+  transparent={false}
+  onRequestClose={() => setQrModalVisible(false)}
+>
+  <SafeAreaView style={styles.qrModalContainer}>
+    <View style={styles.qrHeader}>
+      <Text style={styles.qrTitle}>Your Band QR Code</Text>
+      <TouchableOpacity onPress={() => setQrModalVisible(false)}>
+        <Text style={styles.qrCloseButton}>Close</Text>
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles.qrContent}>
+      <Text style={styles.qrInstructions}>
+        Customers can scan this QR code to go directly to your band in the app!
+      </Text>
+
+      <View style={styles.qrCodeWrapper}>
+        <QRCode
+          value={`livejukebox://band/${bandSlug}`}
+          size={250}
+          backgroundColor="white"
+        />
+      </View>
+
+      <View style={styles.qrLinkBox}>
+        <Text style={styles.qrLinkLabel}>Deep Link:</Text>
+        <Text style={styles.qrLinkText}>livejukebox://band/{bandSlug}</Text>
+      </View>
+
+      <Text style={styles.qrUsageText}>
+        💡 Add this QR code to:{'\n'}
+        • Flyers and posters{'\n'}
+        • Table tents{'\n'}
+        • Social media posts{'\n'}
+        • Your website
+      </Text>
+    </View>
+  </SafeAreaView>
+</Modal>
+
     </View>
   );
-}
+
 
 const styles = StyleSheet.create({
   container: {
@@ -1045,5 +1647,364 @@ loadingContainer: {
     color: '#fff',
     marginTop: 10,
     fontSize: 16,
+  },
+  filterRow: {
+  flexDirection: 'row',
+  padding: 15,
+  gap: 10,
+},
+filterButton: {
+  flex: 1,
+  backgroundColor: '#2a2a2a',
+  padding: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+  borderWidth: 2,
+  borderColor: '#2a2a2a',
+},
+filterButtonActive: {
+  borderColor: '#2c5282',
+  backgroundColor: '#1a3a5a',
+},
+filterButtonText: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: 'bold',
+},
+masterListCard: {
+  backgroundColor: '#2a2a2a',
+  borderRadius: 12,
+  padding: 15,
+  marginBottom: 15,
+  borderLeftWidth: 4,
+  borderLeftColor: '#2c5282',
+},
+masterListHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 12,
+},
+masterListInfo: {
+  flex: 1,
+},
+masterListTitle: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  color: '#fff',
+  marginBottom: 4,
+},
+masterListArtist: {
+  fontSize: 14,
+  color: '#aaa',
+},
+masterListPrice: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#4CAF50',
+},
+toggleRow: {
+  flexDirection: 'row',
+  gap: 10,
+  marginBottom: 12,
+},
+toggleButton: {
+  flex: 1,
+  backgroundColor: '#1a1a1a',
+  padding: 10,
+  borderRadius: 6,
+  alignItems: 'center',
+  borderWidth: 2,
+  borderColor: '#444',
+},
+toggleButtonActive: {
+  borderColor: '#4CAF50',
+  backgroundColor: '#1a3a1a',
+},
+toggleButtonText: {
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: 'bold',
+},
+filterRow: {
+    flexDirection: 'row',
+    padding: 15,
+    gap: 10,
+  },
+  filterButton: {
+    flex: 1,
+    backgroundColor: '#2a2a2a',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#2a2a2a',
+  },
+  filterButtonActive: {
+    borderColor: '#2c5282',
+    backgroundColor: '#1a3a5a',
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  masterListCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2c5282',
+  },
+  masterListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  masterListInfo: {
+    flex: 1,
+  },
+  masterListTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  masterListArtist: {
+    fontSize: 14,
+    color: '#aaa',
+  },
+  masterListPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  toggleButton: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    padding: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#444',
+  },
+  toggleButtonActive: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#1a3a1a',
+  },
+  toggleButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  emptyIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  emptySubtext: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  setListControls: {
+    flexDirection: 'row',
+    padding: 15,
+    gap: 10,
+  },
+  controlButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  addSongToSetButton: {
+    backgroundColor: '#4CAF50',
+  },
+  addBreakButton: {
+    backgroundColor: '#FFD700',
+  },
+  clearSetListButton: {
+    backgroundColor: '#f44336',
+  },
+  controlButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  setListCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a2a2a',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFD700',
+  },
+  setListOrder: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    marginRight: 15,
+    width: 30,
+  },
+  setListInfo: {
+    flex: 1,
+  },
+  setListTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  setListArtist: {
+    fontSize: 14,
+    color: '#aaa',
+  },
+  setListBreakText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    marginBottom: 4,
+  },
+  setListBreakDuration: {
+    fontSize: 14,
+    color: '#aaa',
+  },
+  setListActions: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  moveButton: {
+    backgroundColor: '#2c5282',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moveButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  removeButton: {
+    backgroundColor: '#f44336',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  songSelectList: {
+    maxHeight: 400,
+  },
+  songSelectItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  songSelectTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  songSelectArtist: {
+    fontSize: 14,
+    color: '#666',
+  },
+  qrButton: {
+    backgroundColor: '#9C27B0',
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  qrModalContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+  },
+  qrHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#2c5282',
+  },
+  qrTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  qrCloseButton: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  qrContent: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 20,
+  },
+  qrInstructions: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 24,
+  },
+  qrCodeWrapper: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 30,
+  },
+  qrLinkBox: {
+    backgroundColor: '#2a2a2a',
+    padding: 15,
+    borderRadius: 8,
+    width: '100%',
+    marginBottom: 30,
+  },
+  qrLinkLabel: {
+    color: '#aaa',
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  qrLinkText: {
+    color: '#4299e1',
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  qrUsageText: {
+    color: '#aaa',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
