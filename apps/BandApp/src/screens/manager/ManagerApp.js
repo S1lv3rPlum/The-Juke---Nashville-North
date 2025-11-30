@@ -60,6 +60,11 @@ const [breakDuration, setBreakDuration] = useState('15');
 const [qrModalVisible, setQrModalVisible] = useState(false);
 const [bandSlug, setBandSlug] = useState('');
 
+// edit break modal
+const [editBreakModalVisible, setEditBreakModalVisible] = useState(false);
+const [editingBreak, setEditingBreak] = useState(null);
+const [editBreakDuration, setEditBreakDuration] = useState('');
+
   useEffect(() => {
     // Get bandId from authenticated user
     const user = auth.currentUser;
@@ -535,38 +540,44 @@ const toggleRequestable = async (song) => {
 
 const renderSetListItem = ({ item, index }) => {
   if (item.type === 'break') {
-    return (
-      <View style={styles.setListCard}>
-        <Text style={styles.setListOrder}>{index + 1}</Text>
-        <View style={styles.setListInfo}>
-          <Text style={styles.setListBreakText}>🎵 Break</Text>
-          <Text style={styles.setListBreakDuration}>{item.breakDuration} minutes</Text>
-        </View>
-        <View style={styles.setListActions}>
-          <TouchableOpacity
-            style={styles.moveButton}
-            onPress={() => moveSetListItem(index, 'up')}
-            disabled={index === 0}
-          >
-            <Text style={styles.moveButtonText}>↑</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.moveButton}
-            onPress={() => moveSetListItem(index, 'down')}
-            disabled={index === setListItems.length - 1}
-          >
-            <Text style={styles.moveButtonText}>↓</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => removeFromSetList(item.id)}
-          >
-            <Text style={styles.removeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
+  return (
+    <View style={styles.setListCard}>
+      <Text style={styles.setListOrder}>{index + 1}</Text>
+      <View style={styles.setListInfo}>
+        <Text style={styles.setListBreakText}>🎵 Break</Text>
+        <Text style={styles.setListBreakDuration}>{item.breakDuration} minutes</Text>
       </View>
-    );
-  }
+      <View style={styles.setListActions}>
+        <TouchableOpacity
+          style={styles.editBreakButton}  // NEW: Edit button
+          onPress={() => openEditBreak(item)}
+        >
+          <Text style={styles.editBreakButtonText}>✎</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.moveButton}
+          onPress={() => moveSetListItem(index, 'up')}
+          disabled={index === 0}
+        >
+          <Text style={styles.moveButtonText}>↑</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.moveButton}
+          onPress={() => moveSetListItem(index, 'down')}
+          disabled={index === setListItems.length - 1}
+        >
+          <Text style={styles.moveButtonText}>↓</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => removeFromSetList(item.id)}
+        >
+          <Text style={styles.removeButtonText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
 
   // Song item
   const song = songs.find(s => s.id === item.songId);
@@ -753,6 +764,34 @@ const clearSetList = async () => {
       }
     ]
   );
+};
+
+const openEditBreak = (breakItem) => {
+  setEditingBreak(breakItem);
+  setEditBreakDuration(breakItem.breakDuration.toString());
+  setEditBreakModalVisible(true);
+};
+
+const updateBreak = async () => {
+  const duration = parseInt(editBreakDuration);
+  if (isNaN(duration) || duration < 1) {
+    Alert.alert('Invalid Duration', 'Please enter a valid break duration.');
+    return;
+  }
+
+  try {
+    const breakRef = ref(database, `bands/${bandId}/setList/${editingBreak.id}`);
+    await update(breakRef, {
+      breakDuration: duration
+    });
+
+    Alert.alert('Success', 'Break duration updated!');
+    setEditBreakModalVisible(false);
+    setEditingBreak(null);
+  } catch (error) {
+    Alert.alert('Error', 'Failed to update break.');
+    console.error(error);
+  }
 };
 
 // ----------------------------
@@ -1217,6 +1256,41 @@ return (
   </View>
 </Modal>
 
+{/* Edit Break Modal */}
+<Modal
+  visible={editBreakModalVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setEditBreakModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Edit Break</Text>
+
+      <Text style={styles.settingLabel}>Duration (minutes)</Text>
+      <TextInput
+        style={styles.input}
+        value={editBreakDuration}
+        onChangeText={setEditBreakDuration}
+        keyboardType="numeric"
+      />
+
+      <TouchableOpacity
+        style={styles.saveButton}
+        onPress={updateBreak}
+      >
+        <Text style={styles.saveButtonText}>Update Break</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.cancelButton}
+        onPress={() => setEditBreakModalVisible(false)}
+      >
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
 
 {/* QR Code Modal */}
 <Modal
@@ -1513,6 +1587,11 @@ const styles = StyleSheet.create({
     paddingVertical: 25,
     alignItems: 'center',
     },
+    saveButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
   resetButton: {
   backgroundColor: '#ff9800',
   marginBottom: 10,
@@ -1821,4 +1900,17 @@ toggleButtonText: {
     textAlign: 'center',
     lineHeight: 22,
   },
+  editBreakButton: {
+  backgroundColor: '#2196F3',
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+editBreakButtonText: {
+  color: '#fff',
+  fontSize: 18,
+  fontWeight: 'bold',
+},
 });
