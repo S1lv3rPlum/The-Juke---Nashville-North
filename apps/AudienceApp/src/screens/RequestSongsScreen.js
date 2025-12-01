@@ -205,18 +205,18 @@ export default function RequestSongsScreen({ bandId }) {
     const newRef = push(requestsRef);
 
     const requestData = {
-      id: newRef.key,
-      songId: selectedSong.id,
-      songTitle: selectedSong.title,
-      artist: selectedSong.artist,
-      price: selectedSong.price,
-      customerName: customerName || 'Anonymous',
-      timestamp: Date.now(),
-      paymentMethod,
-      status: paymentMethod === 'venmo' ? 'confirmed' : 'pending',
-      priorityBoost,
-      playedTimestamp: null,
-    };
+  id: newRef.key,
+  songId: selectedSong.id,
+  songTitle: selectedSong.title,
+  artist: selectedSong.artist,
+  price: selectedSong.price,
+  customerName: customerName || 'Anonymous',
+  timestamp: Date.now(),
+  paymentMethod,
+  status: 'pending',  // ← ALL payments need confirmation now
+  priorityBoost,
+  playedTimestamp: null,
+};
 
     try {
       await set(newRef, requestData);
