@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
@@ -15,19 +17,10 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 // Mock auth for Expo Go testing
-const auth = {
-  currentUser: { uid: "dev-testing-user" },
-  onAuthStateChanged: (cb) => {
-    cb({ uid: "dev-testing-user" }); // Fake logged-in user
-    return () => {};
-  },
-  signInWithEmailAndPassword: async () => {
-    console.warn("Firebase Auth disabled: using Expo Go");
-    return { user: { uid: "dev-testing-user" } };
-  },
-  signOut: async () => {
-    console.warn("Firebase Auth disabled: using Expo Go");
-  },
-};
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
 export { app, database, auth };
