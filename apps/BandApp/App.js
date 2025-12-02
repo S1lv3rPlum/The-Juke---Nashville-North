@@ -17,7 +17,7 @@ import BandLeaderApp from './src/screens/leader/LeaderApp';
 import ManagerApp from './src/screens/manager/ManagerApp';
 
 const Stack = createStackNavigator();
-const DEV_FORCE_LOGIN = false; // Set to false for production
+const DEV_FORCE_LOGIN = True; // Set to false for production
 
 // Auth Stack
 function AuthStack() {
