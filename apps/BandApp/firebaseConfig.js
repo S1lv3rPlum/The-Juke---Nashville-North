@@ -13,4 +13,25 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const database = getDatabase(app);
+const database = getDatabase(app);
+
+// Mock auth for Expo Go / Production Build
+const auth = {
+  currentUser: { uid: "dev-testing-user" },
+  
+  onAuthStateChanged: (cb) => {
+    cb({ uid: "dev-testing-user" });
+    return () => {};
+  },
+  
+  signInWithEmailAndPassword: async () => {
+    console.warn("Firebase Auth disabled: using mock auth");
+    return { user: { uid: "dev-testing-user" } };
+  },
+  
+  signOut: async () => {
+    console.warn("Firebase Auth disabled: using mock auth");
+  },
+};
+
+export { app, database, auth };
