@@ -34,7 +34,10 @@
               "scheme": "venmo"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -43,8 +46,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "YOUR_NEW_PROJECT_ID"
+        "projectId": "1b04f152-bfdd-4b58-ae28-66c0a86ca0e3"
       }
-    }
+    },
+    "owner": "s1lv3rplum"
   }
 }
