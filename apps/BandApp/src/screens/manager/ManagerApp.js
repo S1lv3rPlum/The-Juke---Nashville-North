@@ -621,7 +621,7 @@ const renderSetListItem = ({ item, index }) => {
 
 if (!bandId) {
   return (
-    <View style={styles.loadingContainer}>
+    <View style={styles.loadingContainer}>  
       <ActivityIndicator size="large" color="#2c5282" />
       <Text style={styles.loadingText}>Loading band data...</Text>
     </View>
@@ -1034,9 +1034,6 @@ return (
       </>
     )}
   
-);
-
-
       {/* Settings Modal */}
       <Modal
         visible={settingsModalVisible}
