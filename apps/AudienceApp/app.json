@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Live Jukebox",
+    "slug": "live-jukebox-audience",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "livejukebox",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#8B4513"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.livejukebox.audience"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#8B4513"
+      },
+      "package": "com.livejukebox.audience",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "livejukebox",
+              "host": "band"
+            },
+            {
+              "scheme": "venmo"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1b04f152-bfdd-4b58-ae28-66c0a86ca0e3"
+      }
+    },
+    "owner": "s1lv3rplum"
+  }
+}
