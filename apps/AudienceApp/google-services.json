@@ -8,9 +8,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:850520994035:android:5f144e03b7369a72b1c786",
+        "mobilesdk_app_id": "1:850520994035:android:9c7eca7a963b044bb1c786",
         "android_client_info": {
-          "package_name": "com.dataforgeapps.TheJukeAudience"
+          "package_name": "com.dataforgeapps.thejuke.audience"
         }
       },
       "oauth_client": [],
