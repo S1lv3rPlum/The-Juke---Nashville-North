@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "850520994035",
+    "firebase_url": "https://the-juke---nashville-default-rtdb.firebaseio.com",
+    "project_id": "the-juke---nashville",
+    "storage_bucket": "the-juke---nashville.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850520994035:android:9c7eca7a963b044bb1c786",
+        "android_client_info": {
+          "package_name": "com.dataforgeapps.thejuke.audience"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVRxYbc2OLleUvJaIpquLQyEQGYryGrKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850520994035:android:0d58ae1c0b62d10bb1c786",
+        "android_client_info": {
+          "package_name": "com.dataforgeapps.thejuke.band"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVRxYbc2OLleUvJaIpquLQyEQGYryGrKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
