@@ -9,10 +9,17 @@ import {
 import { database } from '../../firebaseConfig';
 import { ref, onValue } from 'firebase/database';
 
-export default function SetListScreen({ bandId }) {
+export default function SetListScreen({ bandId, route, navigation }) {
+  const bandName = route?.params?.bandName;
   const [setList, setSetList] = useState([]);
   const [songs, setSongs] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+
+   React.useLayoutEffect(() => {
+    if (bandName) {
+      navigation.setOptions({ title: bandName });
+    }
+  }, [bandName]);
 
   useEffect(() => {
     if (!bandId) return;

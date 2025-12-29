@@ -48,7 +48,7 @@ export default function App() {
   useEffect(() => {
     if (DEV_FORCE_LOGIN) {
       // Skip auth for development testing
-      setUser({ uid: "dev-testing-user" });
+      setUser({ uid: "Nashville-North" });
       setLoading(false);
       return;
     }

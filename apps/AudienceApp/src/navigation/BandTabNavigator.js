@@ -98,18 +98,19 @@ export default function BandTabNavigator({ route, navigation }) {
         }}
       >
         <Tab.Screen
-          name="SetList"
-          options={{ tabBarLabel: 'Set List', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎵</Text> }}
-        >
-          {() => <SetListScreen bandId={bandId} />}
-        </Tab.Screen>
+  name="SetList"
+  options={{ tabBarLabel: 'Set List', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎵</Text> }}
+>
+  {() => <SetListScreen bandId={bandId} />}
+</Tab.Screen>
 
-        <Tab.Screen
-          name="RequestSongs"
-          options={{ tabBarLabel: 'Request Songs', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎸</Text> }}
-        >
-          {() => <RequestSongsScreen bandId={bandId} />}
-        </Tab.Screen>
+<Tab.Screen
+  name="RequestSongs"
+  options={{ tabBarLabel: 'Request Songs', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎸</Text> }}
+>
+  {() => <RequestSongsScreen bandId={bandId} />}
+</Tab.Screen>
+
       </Tab.Navigator>
 
       {/* Ad Banner at bottom */}

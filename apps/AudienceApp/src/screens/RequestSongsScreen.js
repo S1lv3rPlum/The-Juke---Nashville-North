@@ -15,7 +15,8 @@ import { database } from '../../firebaseConfig';
 import { ref, onValue, push, set } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function RequestSongsScreen({ bandId }) {
+export default function RequestSongsScreen({ bandId,route, navigation }) {
+  const bandName = route?.params?.bandName;
   const [songs, setSongs] = useState([]);
   const [allSongs, setAllSongs] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -29,6 +30,12 @@ export default function RequestSongsScreen({ bandId }) {
   const [cooldownTime, setCooldownTime] = useState(0);
   const [settings, setSettings] = useState({});
   const [myRequests, setMyRequests] = useState([]);
+
+    React.useLayoutEffect(() => {
+    if (bandName) {
+      navigation.setOptions({ title: bandName });
+    }
+  }, [bandName]);
 
   useEffect(() => {
     if (!bandId) return;

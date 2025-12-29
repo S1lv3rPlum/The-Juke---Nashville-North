@@ -17,16 +17,16 @@ const database = getDatabase(app);
 
 // Mock auth for Expo Go / Production Build
 const auth = {
-  currentUser: { uid: "dev-testing-user" },
+  currentUser: { uid: "Nashville-North" },
   
   onAuthStateChanged: (cb) => {
-    cb({ uid: "dev-testing-user" });
+    cb({ uid: "Nashville-North" });
     return () => {};
   },
   
   signInWithEmailAndPassword: async () => {
     console.warn("Firebase Auth disabled: using mock auth");
-    return { user: { uid: "dev-testing-user" } };
+    return { user: { uid: "Nashville-North" } };
   },
   
   signOut: async () => {

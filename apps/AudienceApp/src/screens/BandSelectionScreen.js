@@ -89,7 +89,7 @@ export default function BandSelectionScreen({ navigation }) {
 
   const selectBand = async (band) => {
     await saveRecentBand(band.bandId);
-    navigation.navigate('BandTabs', { bandId: band.bandId, bandSlug: band.bandSlug });
+    navigation.navigate('BandTabs', { bandId: band.bandId, bandSlug: band.bandSlug, bandName: band.bandName });
   };
 
   const renderBandItem = ({ item }) => (
