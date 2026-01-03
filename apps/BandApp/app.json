@@ -13,14 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.livejukebox.band"
+      "bundleIdentifier": "com.dataforgeapps.thejuke.band"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2c5282"
       },
-      "package": "com.livejukebox.band"
+      "package": "com.dataforgeapps.thejuke.band"
     },
     "web": {
       "favicon": "./assets/favicon.png"
