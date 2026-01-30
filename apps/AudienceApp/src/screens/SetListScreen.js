@@ -25,6 +25,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
   });
 
   React.useLayoutEffect(() => {
+    console.log('Setting header, bandName:', bandName, 'enableTips:', settings.enableTips);
     if (bandName) {
       navigation.setOptions({ 
         title: bandName,
@@ -39,7 +40,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
           ) : null,
       });
     }
-  }, [bandName, settings.enableTips]);
+  }, [bandName, settings.enableTips, navigation]);
 
   useEffect(() => {
     if (!bandId) return;
