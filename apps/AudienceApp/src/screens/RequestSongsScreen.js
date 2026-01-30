@@ -255,12 +255,17 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
     }
   };
 
-  const openVenmo = (amount) => {
-    const venmoUrl = `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song Request`;
-    Linking.canOpenURL(venmoUrl).then((supported) =>
-      supported ? Linking.openURL(venmoUrl) : Alert.alert('Venmo Not Found', 'Please install Venmo.')
+ const openVenmo = (amount) => {
+  const venmoUrl = `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song Request`;
+
+  Linking.openURL(venmoUrl).catch(() => {
+    Alert.alert(
+      "Venmo Not Available",
+      "Please make sure Venmo is installed on your device."
     );
-  };
+  });
+};
+3656
 
   const renderSongItem = ({ item }) => (
     <TouchableOpacity
