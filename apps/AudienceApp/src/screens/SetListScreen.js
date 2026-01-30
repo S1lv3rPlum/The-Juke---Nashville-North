@@ -125,6 +125,13 @@ export default function SetListScreen({ bandId, route, navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={{ backgroundColor: 'red', padding: 10 }}>
+      <Text style={{ color: 'white' }}>
+        DEBUG: enableTips={String(settings.enableTips)} 
+        venmo={settings.venmoUsername}
+        bandId={bandId}
+      </Text>
+    </View>
       {setList.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🎵</Text>
@@ -155,8 +162,13 @@ export default function SetListScreen({ bandId, route, navigation }) {
         tipAmount2={settings.tipAmount2}
       />
     </View>
+
+  
   );
+  
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
