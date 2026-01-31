@@ -16,7 +16,7 @@ import TipModal from '../components/TipModal';
 const Tab = createBottomTabNavigator();
 
 export default function BandTabNavigator({ route, navigation }) {
-  const { bandId, bandSlug } = route.params;
+  const { bandId} = route.params;
   const [bandInfo, setBandInfo] = useState(null);
   const [ads, setAds] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -35,7 +35,7 @@ const [bandSettings, setBandSettings] = useState({
     if (!bandId) return;
 
     // Load band info
-    const bandRef = ref(database, `bandDirectory/${bandSlug}`);
+    const bandRef = ref(database, `bandDirectory/${bandId}`);
     const bandUnsub = onValue(bandRef, (snapshot) => {
       if (snapshot.val()) setBandInfo(snapshot.val());
     });
@@ -84,7 +84,7 @@ const settingsUnsub = onValue(settingsRef, (snapshot) => {
       requestsUnsub();
       settingsUnsub();
     };
-  }, [bandId, bandSlug]);
+  }, [bandId]);
 
   const loadMyRequests = async () => {
     try {
