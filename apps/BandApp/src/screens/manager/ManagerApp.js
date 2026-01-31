@@ -1057,7 +1057,7 @@ return (
     )}
   
       {/* Settings Modal */}
-      Modal
+      <Modal
   visible={settingsModalVisible}
   animationType="slide"
   transparent={true}
