@@ -10,8 +10,10 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import SpittoonTip from './SpittoonTip';
 
-export default function Header({ bandName, logoUrl, queueCount, onQueuePress, onBackPress }) {
+
+export default function Header({ bandName, logoUrl, queueCount, onQueuePress, onBackPress, enableTips, onTipPress }) {
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [logoHeight, setLogoHeight] = useState(0);
   const LOGO_WIDTH_RATIO = 0.5;
@@ -72,11 +74,22 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
             )}
           </View>
           
-          {onQueuePress && (
-            <TouchableOpacity style={styles.queueButton} onPress={onQueuePress}>
-              <Text style={styles.queueButtonText}>Queue ({queueCount})</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.rightControls}>
+  {enableTips && (
+    <SpittoonTip
+      onPress={onTipPress}
+      size={36}
+    />
+  )}
+
+  {onQueuePress && (
+    <TouchableOpacity style={styles.queueButton} onPress={onQueuePress}>
+      <Text style={styles.queueButtonText}>Queue ({queueCount})</Text>
+    </TouchableOpacity>
+  )}
+</View>
+
+
         </View>
       </SafeAreaView>
     </View>
@@ -130,4 +143,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+
+
+rightControls: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
+
 });

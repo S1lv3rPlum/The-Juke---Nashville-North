@@ -10,6 +10,8 @@ import AdCarousel from '../components/AdCarousel';
 import SetListScreen from '../screens/SetListScreen';
 import RequestSongsScreen from '../screens/RequestSongsScreen';
 import QueueModal from '../components/QueueModal';
+import TipModal from '../components/TipModal';
+
 
 const Tab = createBottomTabNavigator();
 
@@ -20,6 +22,14 @@ export default function BandTabNavigator({ route, navigation }) {
   const [requests, setRequests] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [queueModalVisible, setQueueModalVisible] = useState(false);
+const [showTipModal, setShowTipModal] = useState(false);
+const [bandSettings, setBandSettings] = useState({
+  enableTips: true,
+  venmoUsername: '',
+  tipAmount1: 5,
+  tipAmount2: 10,
+});
+
 
   useEffect(() => {
     if (!bandId) return;
@@ -39,6 +49,14 @@ export default function BandTabNavigator({ route, navigation }) {
         setAds(activeAds);
       }
     });
+
+     // Load band settings (for tips)
+const settingsRef = ref(database, `bands/${bandId}/settings`);
+const settingsUnsub = onValue(settingsRef, (snapshot) => {
+  if (snapshot.val()) {
+    setBandSettings(snapshot.val());
+  }
+});
 
     // Load requests for queue count
     const requestsRef = ref(database, `bands/${bandId}/requests`);
@@ -64,6 +82,7 @@ export default function BandTabNavigator({ route, navigation }) {
       bandUnsub();
       adsUnsub();
       requestsUnsub();
+      settingsUnsub();
     };
   }, [bandId, bandSlug]);
 
@@ -76,15 +95,19 @@ export default function BandTabNavigator({ route, navigation }) {
     }
   };
 
+  console.log('BandTabNavigator bandSettings:', bandSettings);
+
   return (
     <View style={{ flex: 1 }}>
       <Header
-        bandName={bandInfo?.bandName || 'Live Jukebox'}
-        logoUrl={bandInfo?.logoUrl}
-        queueCount={requests.length}
-        onQueuePress={() => setQueueModalVisible(true)}
-        onBackPress={() => navigation.goBack()}
-      />
+  bandName={bandInfo?.bandName || 'Live Jukebox'}
+  logoUrl={bandInfo?.logoUrl}
+  queueCount={requests.length}
+  onQueuePress={() => setQueueModalVisible(true)}
+  onBackPress={() => navigation.goBack()}
+  enableTips={bandSettings.enableTips}
+  onTipPress={() => setShowTipModal(true)}
+/>
 
       <Tab.Navigator
         screenOptions={{
@@ -101,14 +124,14 @@ export default function BandTabNavigator({ route, navigation }) {
   name="SetList"
   options={{ tabBarLabel: 'Set List', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎵</Text> }}
 >
-  {() => <SetListScreen bandId={bandId} />}
+  {(props) => <SetListScreen {...props} bandId={bandId} />}
 </Tab.Screen>
 
 <Tab.Screen
   name="RequestSongs"
   options={{ tabBarLabel: 'Request Songs', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎸</Text> }}
 >
-  {() => <RequestSongsScreen bandId={bandId} />}
+  {(props) => <RequestSongsScreen {...props} bandId={bandId} />}
 </Tab.Screen>
 
       </Tab.Navigator>
@@ -127,6 +150,15 @@ export default function BandTabNavigator({ route, navigation }) {
         requests={requests}
         myRequests={myRequests}
       />
+
+      <TipModal
+  visible={showTipModal}
+  onClose={() => setShowTipModal(false)}
+  venmoUsername={bandSettings?.venmoUsername}
+  tipAmount1={bandSettings?.tipAmount1 || 5}
+  tipAmount2={bandSettings?.tipAmount2 || 10}
+/>
+
     </View>
   );
 }

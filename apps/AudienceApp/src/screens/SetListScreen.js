@@ -8,56 +8,22 @@ import {
 } from 'react-native';
 import { database } from '../../firebaseConfig';
 import { ref, onValue } from 'firebase/database';
-import SpittoonTip from '../components/SpittoonTip';
-import TipModal from '../components/TipModal';
+
 
 export default function SetListScreen({ bandId, route, navigation }) {
   const bandName = route?.params?.bandName;
   const [setList, setSetList] = useState([]);
   const [songs, setSongs] = useState({});
   const [refreshing, setRefreshing] = useState(false);
-  const [showTipModal, setShowTipModal] = useState(false);
-  const [settings, setSettings] = useState({
-    enableTips: false,
-    venmoUsername: '',
-    tipAmount1: 5,
-    tipAmount2: 10,
-  });
+ 
+  
 
-  React.useLayoutEffect(() => {
-    console.log('Setting header, bandName:', bandName, 'enableTips:', settings.enableTips);
-    if (bandName) {
-      navigation.setOptions({ 
-        title: bandName,
-        headerRight: () => 
-          settings.enableTips ? (
-            <View style={{ marginRight: 10 }}>
-              <SpittoonTip 
-                onPress={() => setShowTipModal(true)} 
-                size={44}
-              />
-            </View>
-          ) : null,
-      });
-    }
-  }, [bandName, settings.enableTips, navigation]);
+ 
 
   useEffect(() => {
     if (!bandId) return;
 
-    // Load band settings
-    const settingsRef = ref(database, `bands/${bandId}/settings`);
-    const settingsUnsub = onValue(settingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSettings({
-          enableTips: data.enableTips || false,
-          venmoUsername: data.venmoUsername || '',
-          tipAmount1: data.tipAmount1 || 5,
-          tipAmount2: data.tipAmount2 || 10,
-        });
-      }
-    });
+    
 
     // Load songs (to get line dance info)
     const songsRef = ref(database, `bands/${bandId}/songs`);
@@ -81,7 +47,6 @@ export default function SetListScreen({ bandId, route, navigation }) {
     });
 
     return () => {
-      settingsUnsub();
       songsUnsub();
       setListUnsub();
     };
@@ -105,6 +70,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
       );
     }
 
+     
     // Song item
     const song = songs[item.songId];
     if (!song) return null;
@@ -125,13 +91,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={{ backgroundColor: 'red', padding: 10 }}>
-      <Text style={{ color: 'white' }}>
-        DEBUG: enableTips={String(settings.enableTips)} 
-        venmo={settings.venmoUsername}
-        bandId={bandId}
-      </Text>
-    </View>
+      
       {setList.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🎵</Text>
@@ -154,13 +114,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
         />
       )}
 
-      <TipModal
-        visible={showTipModal}
-        onClose={() => setShowTipModal(false)}
-        venmoUsername={settings.venmoUsername}
-        tipAmount1={settings.tipAmount1}
-        tipAmount2={settings.tipAmount2}
-      />
+      
     </View>
 
   
