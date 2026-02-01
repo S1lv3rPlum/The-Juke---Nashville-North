@@ -35,6 +35,12 @@ export default function ManagerApp() {
   const [previousPendingCount, setPreviousPendingCount] = useState(null);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'masterList', 'setList'
   
+  //log tip info
+  const [newEnableTips, setNewEnableTips] = useState(true);
+const [newTipAmount1, setNewTipAmount1] = useState('5');
+const [newTipAmount2, setNewTipAmount2] = useState('10');
+const [newLogoUrl, setNewLogoUrl] = useState('');
+
   // New song form
   const [newSongTitle, setNewSongTitle] = useState('');
   const [newSongArtist, setNewSongArtist] = useState('');
@@ -141,15 +147,19 @@ const setListUnsub = onValue(setListRef, (snapshot) => {
 
     // Load settings
     const settingsRef = ref(database, `bands/${bandId}/settings`);
-    const settingsUnsub = onValue(settingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSettings(data);
-        setNewPriorityPrice(data.priorityBoostPrice?.toString() || '10');
-        setNewMaxRequests(data.maxRequests?.toString() || '10');
-        setNewVenmoUsername(data.venmoUsername || '');
-      }
-    });
+const settingsUnsub = onValue(settingsRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    setSettings(data);
+    setNewPriorityPrice(data.priorityBoostPrice?.toString() || '10');
+    setNewMaxRequests(data.maxRequests?.toString() || '10');
+    setNewVenmoUsername(data.venmoUsername || '');
+    setNewEnableTips(data.enableTips || false);
+    setNewTipAmount1(data.tipAmount1?.toString() || '5');
+    setNewTipAmount2(data.tipAmount2?.toString() || '10');
+    setNewLogoUrl(data.logoUrl || '');
+  }
+});
 
 // Load band slug from directory
 let bandDirUnsub = () => {}; // Declare outside if statement
@@ -249,10 +259,13 @@ if (user) {
       ]
     );
   };
-
+  
+  //update settings 
  const updateSettings = async () => {
   const price = parseFloat(newPriorityPrice);
   const maxReq = parseInt(newMaxRequests);
+  const tip1 = parseFloat(newTipAmount1);
+  const tip2 = parseFloat(newTipAmount2);
   
   if (isNaN(price) || price < 0) {
     Alert.alert('Invalid Price', 'Please enter a valid priority boost price.');
@@ -269,14 +282,23 @@ if (user) {
     return;
   }
 
+  if (isNaN(tip1) || tip1 < 0 || isNaN(tip2) || tip2 < 0) {
+    Alert.alert('Invalid Tip Amounts', 'Please enter valid tip amounts.');
+    return;
+  }
+
   try {
     const settingsRef = ref(database, `bands/${bandId}/settings`);
     await update(settingsRef, { 
       priorityBoostPrice: price,
       maxRequests: maxReq,
-      venmoUsername: newVenmoUsername.trim()
+      venmoUsername: newVenmoUsername.trim(),
+      enableTips: newEnableTips,
+      tipAmount1: tip1,
+      tipAmount2: tip2,
+      logoUrl: newLogoUrl.trim()
     });
-    Alert.alert('Success', `Settings updated!\nPriority boost: $${price}\nMax requests: ${maxReq}\nVenmo: @${newVenmoUsername.trim()}`);
+    Alert.alert('Success', 'Settings updated successfully!');
     setSettingsModalVisible(false);
   } catch (error) {
     Alert.alert('Error', 'Failed to update settings.');
@@ -1036,81 +1058,149 @@ return (
   
       {/* Settings Modal */}
       <Modal
-        visible={settingsModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setSettingsModalVisible(false)}
-      >
-       <View style={styles.modalOverlay}>
-  <View style={styles.modalContent}>
-    <Text style={styles.modalTitle}>Manager Settings</Text>
-
-    <View style={styles.settingItem}>
-      <Text style={styles.settingLabel}>Priority Boost Price ($)</Text>
-      <TextInput
-        style={styles.priceInput}
-        value={newPriorityPrice}
-        onChangeText={setNewPriorityPrice}
-        keyboardType="numeric"
-        placeholder="10"
-      />
-    </View>
-
-    <View style={styles.settingItem}>
-      <Text style={styles.settingLabel}>Max Song Requests</Text>
-      <TextInput
-        style={styles.priceInput}
-        value={newMaxRequests}
-        onChangeText={setNewMaxRequests}
-        keyboardType="numeric"
-        placeholder="10"
-      />
-    </View>
-
-          <View style={styles.settingItem}>
-  <Text style={styles.settingLabel}>Venmo Username</Text>
-  <TextInput
-    style={styles.priceInput}
-    value={newVenmoUsername}
-    onChangeText={setNewVenmoUsername}
-    placeholder="your-venmo-username"
-    autoCapitalize="none"
-  />
-</View>
-
-  <TouchableOpacity
-  style={[styles.saveButton]}
-  onPress={updateSettings}
+  visible={settingsModalVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setSettingsModalVisible(false)}
 >
-  <Text style={styles.saveButtonText}>Save Changes</Text>
-</TouchableOpacity>
+  <View style={styles.modalOverlay}>
+    <ScrollView contentContainerStyle={styles.scrollModalContent}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Manager Settings</Text>
 
-<TouchableOpacity
-  style={[styles.resetButton]}
-  onPress={resetQueue}
->
-  <Text style={styles.resetButtonText}>🔄 Reset Queue</Text>
-</TouchableOpacity>
+        {/* Song Request Settings */}
+        <Text style={styles.sectionHeader}>Song Request Settings</Text>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Priority Boost Price ($)</Text>
+          <TextInput
+            style={styles.priceInput}
+            value={newPriorityPrice}
+            onChangeText={setNewPriorityPrice}
+            keyboardType="numeric"
+            placeholder="10"
+          />
+        </View>
 
-<TouchableOpacity
-  style={[styles.qrButton]}
-  onPress={() => {
-    setSettingsModalVisible(false);
-    setQrModalVisible(true);
-  }}
->
-  <Text style={styles.qrButtonText}>📱 Generate QR Code</Text>
-</TouchableOpacity>
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Max Song Requests</Text>
+          <TextInput
+            style={styles.priceInput}
+            value={newMaxRequests}
+            onChangeText={setNewMaxRequests}
+            keyboardType="numeric"
+            placeholder="10"
+          />
+        </View>
 
-<TouchableOpacity
-  style={styles.cancelButton}
-  onPress={() => setSettingsModalVisible(false)}
->
-  <Text style={styles.cancelButtonText}>Cancel</Text>
-</TouchableOpacity>
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Venmo Username</Text>
+          <TextInput
+            style={styles.priceInput}
+            value={newVenmoUsername}
+            onChangeText={setNewVenmoUsername}
+            placeholder="your-venmo-username"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {/* Tip Settings */}
+        <Text style={styles.sectionHeader}>Tip Jar Settings</Text>
+        
+        <View style={styles.settingItem}>
+          <View style={styles.toggleRow}>
+            <Text style={styles.settingLabel}>Enable Tips</Text>
+            <TouchableOpacity
+              style={[styles.toggleSwitch, newEnableTips && styles.toggleSwitchActive]}
+              onPress={() => setNewEnableTips(!newEnableTips)}
+            >
+              <View style={[styles.toggleThumb, newEnableTips && styles.toggleThumbActive]} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.settingHint}>
+            Show tip jar in audience app (some venues don't allow tips)
+          </Text>
+        </View>
+
+        {newEnableTips && (
+          <>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>Tip Preset Amount 1 ($)</Text>
+              <TextInput
+                style={styles.priceInput}
+                value={newTipAmount1}
+                onChangeText={setNewTipAmount1}
+                keyboardType="numeric"
+                placeholder="5"
+              />
+            </View>
+
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>Tip Preset Amount 2 ($)</Text>
+              <TextInput
+                style={styles.priceInput}
+                value={newTipAmount2}
+                onChangeText={setNewTipAmount2}
+                keyboardType="numeric"
+                placeholder="10"
+              />
+            </View>
+          </>
+        )}
+
+        {/* Band Info Settings */}
+        <Text style={styles.sectionHeader}>Band Information</Text>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Band Logo URL</Text>
+          <TextInput
+            style={[styles.priceInput, styles.urlInput]}
+            value={newLogoUrl}
+            onChangeText={setNewLogoUrl}
+            placeholder="https://example.com/logo.png"
+            autoCapitalize="none"
+            multiline
+          />
+          <Text style={styles.settingHint}>
+            Enter a link to your band logo (PNG, JPG, or GIF)
+          </Text>
+        </View>
+
+        {/* Action Buttons */}
+        <TouchableOpacity
+          style={[styles.saveButton]}
+          onPress={updateSettings}
+        >
+          <Text style={styles.saveButtonText}>Save All Settings</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.resetButton]}
+          onPress={resetQueue}
+        >
+          <Text style={styles.resetButtonText}>🔄 Reset Queue</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.qrButton]}
+          onPress={() => {
+            setSettingsModalVisible(false);
+            setQrModalVisible(true);
+          }}
+        >
+          <Text style={styles.qrButtonText}>📱 Generate QR Code</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => setSettingsModalVisible(false)}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   </View>
-</View>
-      </Modal>
+</Modal>
 
       {/* Add Song Modal */}
       <Modal
@@ -1908,6 +1998,67 @@ toggleButtonText: {
 editBreakButtonText: {
   color: '#fff',
   fontSize: 18,
+  fontWeight: 'bold',
+},
+
+sectionHeader: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#2c5282',
+  marginTop: 20,
+  marginBottom: 10,
+  borderBottomWidth: 2,
+  borderBottomColor: '#2c5282',
+  paddingBottom: 5,
+},
+settingHint: {
+  fontSize: 12,
+  color: '#666',
+  marginTop: 4,
+  fontStyle: 'italic',
+},
+toggleRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+toggleSwitch: {
+  width: 50,
+  height: 28,
+  borderRadius: 14,
+  backgroundColor: '#ccc',
+  padding: 2,
+  justifyContent: 'center',
+},
+toggleSwitchActive: {
+  backgroundColor: '#4CAF50',
+},
+toggleThumb: {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  backgroundColor: '#fff',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 2,
+  elevation: 3,
+},
+toggleThumbActive: {
+  alignSelf: 'flex-end',
+},
+urlInput: {
+  minHeight: 60,
+  textAlignVertical: 'top',
+},
+scrollModalContent: {
+  flexGrow: 1,
+  justifyContent: 'center',
+  padding: 20,
+},
+resetButtonText: {
+  color: '#fff',
+  fontSize: 16,
   fontWeight: 'bold',
 },
 });

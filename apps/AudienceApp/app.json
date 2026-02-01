@@ -23,9 +23,7 @@
       },
       "package": "com.dataforgeapps.thejuke.audience",
        "versionCode": 1,
-         "queries": {
-    "package": ["com.venmo"]
-         },
+       
       "intentFilters": [
         {
           "action": "VIEW",

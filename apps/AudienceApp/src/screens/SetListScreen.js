@@ -9,20 +9,21 @@ import {
 import { database } from '../../firebaseConfig';
 import { ref, onValue } from 'firebase/database';
 
+
 export default function SetListScreen({ bandId, route, navigation }) {
   const bandName = route?.params?.bandName;
   const [setList, setSetList] = useState([]);
   const [songs, setSongs] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+ 
+  
 
-   React.useLayoutEffect(() => {
-    if (bandName) {
-      navigation.setOptions({ title: bandName });
-    }
-  }, [bandName]);
+ 
 
   useEffect(() => {
     if (!bandId) return;
+
+    
 
     // Load songs (to get line dance info)
     const songsRef = ref(database, `bands/${bandId}/songs`);
@@ -69,6 +70,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
       );
     }
 
+     
     // Song item
     const song = songs[item.songId];
     if (!song) return null;
@@ -89,6 +91,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
 
   return (
     <View style={styles.container}>
+      
       {setList.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🎵</Text>
@@ -110,9 +113,16 @@ export default function SetListScreen({ bandId, route, navigation }) {
           }
         />
       )}
+
+      
     </View>
+
+  
   );
+  
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
