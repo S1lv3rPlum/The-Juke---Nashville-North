@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SpittoonTip from './SpittoonTip';
 
-
 export default function Header({ bandName, logoUrl, queueCount, onQueuePress, onBackPress, enableTips, onTipPress }) {
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [logoHeight, setLogoHeight] = useState(0);
@@ -53,43 +52,48 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
     <View style={styles.headerWrapper}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          {onBackPress && (
-            <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
-          )}
-          
-          <View style={styles.centerBlock}>
-            {logoUrl ? (
-              <Image
-                source={{ uri: logoUrl }}
-                style={{
-                  width: logoWidth,
-                  height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
-                  resizeMode: 'contain',
-                }}
-              />
-            ) : (
-              <Text style={styles.bandNameFallback}>{bandName || 'Live Jukebox'}</Text>
+          {/* TOP ROW: Band Name & Tip Jar */}
+          <View style={styles.topRow}>
+            <View style={styles.centerBlock}>
+              {logoUrl ? (
+                <Image
+                  source={{ uri: logoUrl }}
+                  style={{
+                    width: logoWidth,
+                    height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
+                    resizeMode: 'contain',
+                  }}
+                />
+              ) : (
+                <Text style={styles.bandNameFallback}>{bandName || 'Live Jukebox'}</Text>
+              )}
+            </View>
+            
+            {enableTips && (
+              <View style={styles.tipJarContainer}>
+                <SpittoonTip onPress={onTipPress} size={36} />
+              </View>
             )}
           </View>
-          
-          <View style={styles.rightControls}>
-  {enableTips && (
-    <SpittoonTip
-      onPress={onTipPress}
-      size={36}
-    />
-  )}
 
-  {onQueuePress && (
-    <TouchableOpacity style={styles.queueButton} onPress={onQueuePress}>
-      <Text style={styles.queueButtonText}>Queue ({queueCount})</Text>
-    </TouchableOpacity>
-  )}
-</View>
-
-
+          {/* BOTTOM ROW: Back Button & Queue Button */}
+          <View style={styles.bottomRow}>
+            {onBackPress && (
+              <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+                <Text style={styles.backButtonText}>← Back</Text>
+              </TouchableOpacity>
+            )}
+            
+            <View style={{ flex: 1 }} />
+            
+            {onQueuePress && (
+              <TouchableOpacity style={styles.queueButton} onPress={onQueuePress}>
+                <Text style={styles.queueButtonText} numberOfLines={1}>
+                  Queue ({queueCount})
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -105,12 +109,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#8B4513',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: '#8B4513',
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  centerBlock: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipJarContainer: {
+    marginLeft: 10,
   },
   backButton: {
     paddingHorizontal: 12,
@@ -121,34 +141,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  centerBlock: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   queueButton: {
     backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 8,
-    maxWidth: '40%',
+    minWidth: 120,
   },
   queueButtonText: {
     color: '#8B4513',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 15,
   },
   bandNameFallback: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: 'bold',
   },
-
-
-rightControls: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 10,
-},
-
 });
