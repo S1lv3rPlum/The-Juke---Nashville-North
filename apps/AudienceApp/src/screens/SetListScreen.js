@@ -6,12 +6,13 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
 import { database } from '../../firebaseConfig';
 import { ref, onValue } from 'firebase/database';
 import { LinearGradient } from 'expo-linear-gradient';
-import AdCarousel from '../components/AdCarousel';
+
+// Commenting out AdCarousel temporarily to isolate the crash
+// import AdCarousel from '../components/AdCarousel';
 
 export default function SetListScreen({ bandId, route, navigation }) {
   const bandName = route?.params?.bandName;
@@ -20,27 +21,38 @@ export default function SetListScreen({ bandId, route, navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!bandId) return;
+    if (!bandId) {
+      console.log('No bandId provided');
+      return;
+    }
+
+    console.log('Loading data for bandId:', bandId);
 
     // Load songs (to get line dance info)
     const songsRef = ref(database, `bands/${bandId}/songs`);
     const songsUnsub = onValue(songsRef, (snapshot) => {
       const data = snapshot.val();
+      console.log('Songs loaded:', data ? Object.keys(data).length : 0);
       if (data) {
         setSongs(data);
       }
+    }, (error) => {
+      console.error('Error loading songs:', error);
     });
 
     // Load set list
     const setListRef = ref(database, `bands/${bandId}/setList`);
     const setListUnsub = onValue(setListRef, (snapshot) => {
       const data = snapshot.val();
+      console.log('SetList loaded:', data ? Object.keys(data).length : 0);
       if (data) {
         const items = Object.values(data).sort((a, b) => a.order - b.order);
         setSetList(items);
       } else {
         setSetList([]);
       }
+    }, (error) => {
+      console.error('Error loading setList:', error);
     });
 
     return () => {
@@ -72,7 +84,10 @@ export default function SetListScreen({ bandId, route, navigation }) {
 
     // Song item - Eye-catching with glow!
     const song = songs[item.songId];
-    if (!song) return null;
+    if (!song) {
+      console.log('Song not found for songId:', item.songId);
+      return null;
+    }
 
     return (
       <TouchableOpacity activeOpacity={0.8} style={styles.songCardWrapper}>
@@ -141,8 +156,8 @@ export default function SetListScreen({ bandId, route, navigation }) {
         />
       )}
       
-      {/* Ad Carousel at bottom */}
-      <AdCarousel />
+      {/* AdCarousel temporarily commented out - uncomment after testing */}
+      {/* <AdCarousel /> */}
     </LinearGradient>
   );
 }
@@ -153,6 +168,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+    paddingBottom: 100, // Extra space at bottom for ad carousel later
   },
   
   // BREAK STYLES - Subdued
