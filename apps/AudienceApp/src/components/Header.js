@@ -54,15 +54,15 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
         <View style={styles.header}>
           {/* 2x3 Grid Layout */}
           <View style={styles.gridContainer}>
-            {/* Column A (Left) */}
+            {/* Column A (Left) - 2 rows */}
             <View style={styles.leftColumn}>
-              {/* A1 - Empty */}
-              <View style={styles.emptyCell} />
+              {/* A1 - Empty (Row 1) */}
+              <View style={styles.row1Cell} />
               
-              {/* A2 - Back Button */}
+              {/* A2 - Back Button (Row 2) */}
               {onBackPress && (
                 <TouchableOpacity 
-                  style={styles.backButton} 
+                  style={[styles.backButton, styles.row2Cell]} 
                   onPress={onBackPress}
                   activeOpacity={0.7}
                 >
@@ -71,14 +71,14 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
               )}
             </View>
 
-            {/* Column B (Center) - Logo/Band Name - Merged B1:B2 */}
+            {/* Column B (Center) - Logo/Band Name spans both rows (B1:B2 merged) */}
             <View style={styles.centerColumn}>
               {logoUrl ? (
                 <Image
                   source={{ uri: logoUrl }}
                   style={{
                     width: logoWidth,
-                    height: logoHeight || Math.min(80, MAX_LOGO_HEIGHT),
+                    height: logoHeight || Math.min(60, MAX_LOGO_HEIGHT),
                     resizeMode: 'contain',
                   }}
                 />
@@ -87,19 +87,19 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
               )}
             </View>
 
-            {/* Column C (Right) */}
+            {/* Column C (Right) - 2 rows */}
             <View style={styles.rightColumn}>
-              {/* C1 - Tip Spittoon */}
-              <View style={styles.spittoonCell}>
+              {/* C1 - Tip Spittoon (Row 1) */}
+              <View style={styles.row1Cell}>
                 {enableTips && (
-                  <SpittoonTip onPress={onTipPress} size={40} />
+                  <SpittoonTip onPress={onTipPress} size={36} />
                 )}
               </View>
               
-              {/* C2 - Queue Button */}
+              {/* C2 - Queue Button (Row 2) */}
               {onQueuePress && (
                 <TouchableOpacity 
-                  style={styles.queueButton} 
+                  style={[styles.queueButton, styles.row2Cell]} 
                   onPress={onQueuePress}
                   activeOpacity={0.7}
                 >
@@ -126,77 +126,87 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 8,
-    paddingVertical: 4, // Reduced from 8 to make header shorter
+    paddingVertical: 2, // Minimal padding
     backgroundColor: 'transparent',
-    backgroundImage: 'linear-gradient(to right, #ea580c, #f97316, #ea580c)', // Can't use in RN, will use gradient view
+    backgroundImage: 'linear-gradient(to right, #ea580c, #f97316, #ea580c)',
   },
   gridContainer: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    minHeight: 52, // Reduced from 64 to make header less tall
+    height: 64, // Fixed height instead of minHeight
+  },
+  
+  // Shared row styles
+  row1Cell: {
+    height: 32, // Row 1 is 32px
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  row2Cell: {
+    height: 32, // Row 2 is 32px
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   
   // Column A (Left)
   leftColumn: {
-    width: 80,
-    justifyContent: 'flex-end', // Push back button to bottom
+    width: 70,
+    justifyContent: 'space-between', // Distributes rows evenly
   },
   emptyCell: {
-    height: 0, // Remove empty space
+    height: 0, // Remove this - using row1Cell/row2Cell instead
   },
   backButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    paddingHorizontal: 10,
-    paddingVertical: 6, // Reduced from 10
-    borderRadius: 12,
-    marginBottom: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   backButtonText: {
     color: '#fff',
-    fontSize: 13, // Slightly smaller
+    fontSize: 12,
     fontWeight: 'bold',
   },
   
-  // Column B (Center) - Merged cells
+  // Column B (Center) - Merged cells spanning both rows
   centerColumn: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
+    height: 64, // Full height
   },
   bandNameFallback: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   
-  // Column C (Right)
+  // Column C (Right) - 2 rows
   rightColumn: {
-    width: 100,
-    justifyContent: 'flex-end', // Push queue to bottom
-    alignItems: 'center', // Center everything horizontally
+    width: 90,
+    justifyContent: 'space-between', // Distributes rows evenly
+    alignItems: 'center',
   },
   spittoonCell: {
-    height: 0, // Remove blank space
-    marginBottom: 4, // Reduced gap between spittoon and queue
+    // Removed - using row1Cell directly
   },
   queueButton: {
     backgroundColor: '#fff',
-    paddingHorizontal: 10,
-    paddingVertical: 6, // Reduced from 10
-    borderRadius: 12,
-    marginBottom: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: '#fed7aa',
-    minWidth: 85, // Slightly smaller
+    minWidth: 80,
   },
   queueButtonText: {
     color: '#9a3412',
     fontWeight: 'bold',
-    fontSize: 13, // Slightly smaller
+    fontSize: 12,
     textAlign: 'center',
   },
 });
