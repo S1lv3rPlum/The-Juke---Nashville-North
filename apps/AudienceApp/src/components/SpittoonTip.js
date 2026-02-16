@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TouchableOpacity, Animated, Easing, View } from 'react-native';
+import { TouchableOpacity, Animated, Easing, View, Vibration } from 'react-native';
 import Svg, {
   Defs,
   RadialGradient,
@@ -22,20 +22,23 @@ export default function SpittoonTip({ onPress, size = 112 }) {
   }, []);
 
   const handlePress = () => {
-    setAnimating(true);
-    
-    // Animate the spit ball
-    Animated.timing(spitAnim, {
-      toValue: 1,
-      duration: 600,
-      easing: Easing.in(Easing.quad),
-      useNativeDriver: true,
-    }).start(() => {
-      setAnimating(false);
-      spitAnim.setValue(0);
-      if (onPress) onPress();
-    });
-  };
+  setAnimating(true);
+  
+  // Vibrate for tactile feedback
+  Vibration.vibrate(50); // Short 50ms buzz
+  
+  // Animate the spit ball
+  Animated.timing(spitAnim, {
+    toValue: 1,
+    duration: 600,
+    easing: Easing.in(Easing.quad),
+    useNativeDriver: true,
+  }).start(() => {
+    setAnimating(false);
+    spitAnim.setValue(0);
+    if (onPress) onPress();
+  });
+};
 
   // Animation transforms for the spit ball
   const spitTranslateY = spitAnim.interpolate({

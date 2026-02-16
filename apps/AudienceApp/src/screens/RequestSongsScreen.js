@@ -265,14 +265,20 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
     );
   });
 };
-3656
+
 
   const renderSongItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.songItem}
-      onPress={() => openRequestModal(item)}
-      disabled={cooldownTime > 0}
-    >
+  <TouchableOpacity
+    style={styles.songCardWrapper}
+    onPress={() => openRequestModal(item)}
+    disabled={cooldownTime > 0}
+    activeOpacity={0.8}
+  >
+    {/* Glow layers */}
+    <View style={styles.glowLayer1} />
+    <View style={styles.glowLayer2} />
+    
+    <View style={styles.songCard}>
       <View style={styles.songInfo}>
         <Text style={styles.songTitle}>
           {item.title}
@@ -281,8 +287,9 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
         <Text style={styles.songArtist}>{item.artist}</Text>
       </View>
       <Text style={styles.songPrice}>${item.price}</Text>
-    </TouchableOpacity>
-  );
+    </View>
+  </TouchableOpacity>
+);
 
   const confirmedCount = requests.filter(r => r.status === 'confirmed').length;
   const maxRequests = settings.maxRequests || 10;
@@ -373,17 +380,17 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a1a' },
+  container: { flex: 1, backgroundColor: '#020617' },  // darker background
   cooldownBanner: { backgroundColor: '#ff6b6b', padding: 10, alignItems: 'center' },
   cooldownText: { color: '#fff', fontWeight: 'bold' },
   requestLimitBanner: { backgroundColor: '#2a2a2a', padding: 10, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#444' },
   requestLimitText: { color: '#4CAF50', fontWeight: 'bold', fontSize: 14 },
   searchInput: { backgroundColor: '#2a2a2a', margin: 15, padding: 12, borderRadius: 8, fontSize: 16, color: '#fff', borderWidth: 1, borderColor: '#444' },
   songList: { padding: 15, paddingBottom: 20 },
-  songItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2a2a2a', padding: 15, borderRadius: 8, marginBottom: 10 },
+  songCardWrapper: {position: 'relative', marginBottom: 12 },
   songInfo: { flex: 1 },
   songTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  songArtist: { fontSize: 14, color: '#aaa', marginTop: 4 },
+  songArtist: { fontSize: 14, color: '#fbbf24', marginTop: 4 },  // orange color
   songPrice: { fontSize: 18, fontWeight: 'bold', color: '#4CAF50' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', borderRadius: 12, padding: 25, width: '85%', maxWidth: 400 },
@@ -405,4 +412,49 @@ const styles = StyleSheet.create({
   cancelButton: { padding: 12, alignItems: 'center' },
   cancelButtonText: { color: '#666', fontSize: 16 },
   emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20, fontSize: 16 },
+glowLayer1: {
+  position: 'absolute',
+  top: -3,
+  left: -3,
+  right: -3,
+  bottom: -3,
+  backgroundColor: '#f59e0b',
+  borderRadius: 16,
+  opacity: 0.4,
+  shadowColor: '#f59e0b',
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 1,
+  shadowRadius: 15,
+  elevation: 15,
+},
+glowLayer2: {
+  position: 'absolute',
+  top: -6,
+  left: -6,
+  right: -6,
+  bottom: -6,
+  backgroundColor: '#fbbf24',
+  borderRadius: 18,
+  opacity: 0.3,
+  shadowColor: '#fbbf24',
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 1,
+  shadowRadius: 25,
+  elevation: 20,
+},
+songCard: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  backgroundColor: '#1e293b',
+  padding: 20,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: 'rgba(245, 158, 11, 0.6)',
+  shadowColor: '#f59e0b',
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.8,
+  shadowRadius: 12,
+  elevation: 10,
+},
 });

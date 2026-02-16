@@ -78,7 +78,7 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
                   source={{ uri: logoUrl }}
                   style={{
                     width: logoWidth,
-                    height: logoHeight || Math.min(60, MAX_LOGO_HEIGHT),
+                    height: logoHeight || Math.min(50, MAX_LOGO_HEIGHT), // Reduced max
                     resizeMode: 'contain',
                   }}
                 />
@@ -92,7 +92,7 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
               {/* C1 - Tip Spittoon (Row 1) */}
               <View style={styles.row1Cell}>
                 {enableTips && (
-                  <SpittoonTip onPress={onTipPress} size={36} />
+                  <SpittoonTip onPress={onTipPress} size={44} />
                 )}
               </View>
               
@@ -126,24 +126,24 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 8,
-    paddingVertical: 2, // Minimal padding
+    paddingVertical: 0, // Remove all vertical padding
     backgroundColor: 'transparent',
     backgroundImage: 'linear-gradient(to right, #ea580c, #f97316, #ea580c)',
   },
   gridContainer: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    height: 64, // Fixed height instead of minHeight
+    height: 60, // Reduced from 64
   },
   
   // Shared row styles
   row1Cell: {
-    height: 32, // Row 1 is 32px
+    height: 30, // Reduced from 32
     justifyContent: 'center',
     alignItems: 'center',
   },
   row2Cell: {
-    height: 32, // Row 2 is 32px
+    height: 30, // Reduced from 32
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -157,15 +157,15 @@ const styles = StyleSheet.create({
     height: 0, // Remove this - using row1Cell/row2Cell instead
   },
   backButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#fff', // Changed from rgba(0, 0, 0, 0.3) to white
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#fed7aa', // Match queue button border
   },
   backButtonText: {
-    color: '#fff',
+    color: '#9a3412', // Match queue button text color
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
-    height: 64, // Full height
+    height: 60, // Match new grid height
   },
   bandNameFallback: {
     color: '#fff',

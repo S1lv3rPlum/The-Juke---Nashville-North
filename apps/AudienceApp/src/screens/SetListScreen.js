@@ -90,7 +90,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
     }
 
     return (
-      <TouchableOpacity activeOpacity={0.8} style={styles.songCardWrapper}>
+      <View style={styles.songCardWrapper}>
         {/* Glow layers */}
         <View style={styles.glowLayer1} />
         <View style={styles.glowLayer2} />
@@ -123,7 +123,7 @@ export default function SetListScreen({ bandId, route, navigation }) {
           
           <View style={styles.hoverIndicator} />
         </LinearGradient>
-      </TouchableOpacity>
+      </View>
     );
   };
 
