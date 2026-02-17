@@ -1,6 +1,7 @@
 // firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCcnnb18BXrU9q0IAAHrBNiFsQYc2Wu31s",
@@ -14,24 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-
-// Mock auth for Expo Go / Production Build
-const auth = {
-  currentUser: { uid: "Nashville-North" },
-  
-  onAuthStateChanged: (cb) => {
-    cb({ uid: "Nashville-North" });
-    return () => {};
-  },
-  
-  signInWithEmailAndPassword: async () => {
-    console.warn("Firebase Auth disabled: using mock auth");
-    return { user: { uid: "Nashville-North" } };
-  },
-  
-  signOut: async () => {
-    console.warn("Firebase Auth disabled: using mock auth");
-  },
-};
+const auth = getAuth(app);
 
 export { app, database, auth };
