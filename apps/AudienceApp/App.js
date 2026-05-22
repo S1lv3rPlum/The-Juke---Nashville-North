@@ -14,7 +14,6 @@ export default function App() {
   const navigationRef = useRef();
 
   useEffect(() => {
-    // Handle initial deep link safely
     const initLinking = async () => {
       try {
         const url = await Linking.getInitialURL();
@@ -27,7 +26,6 @@ export default function App() {
     };
     initLinking();
 
-    // Handle deep links while app is open safely
     const subscription = Linking.addEventListener('url', ({ url }) => {
       try {
         if (navigationRef.current) {
