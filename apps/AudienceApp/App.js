@@ -6,7 +6,7 @@ import * as Linking from 'expo-linking';
 import BandSelectionScreen from './src/screens/BandSelectionScreen';
 import BandTabNavigator from './src/navigation/BandTabNavigator';
 import { database } from './firebaseConfig';
-import { linking, handleDeepLink } from './src/utils/deepLinking';
+import { linking, handleDeepLink, handleInitialURL } from './src/utils/deepLinking';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,17 +14,7 @@ export default function App() {
   const navigationRef = useRef();
 
   useEffect(() => {
-    const initLinking = async () => {
-      try {
-        const url = await Linking.getInitialURL();
-        if (url && navigationRef.current) {
-          handleDeepLink(url, navigationRef.current, database);
-        }
-      } catch (e) {
-        console.log('Error handling initial URL', e);
-      }
-    };
-    initLinking();
+    handleInitialURL(navigationRef.current);
 
     const subscription = Linking.addEventListener('url', ({ url }) => {
       try {
