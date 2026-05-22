@@ -256,16 +256,19 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
   };
 
  const openVenmo = (amount) => {
-  const venmoUrl = `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song Request`;
-
-  Linking.openURL(venmoUrl).catch(() => {
-    Alert.alert(
-      "Venmo Not Available",
-      "Please make sure Venmo is installed on your device."
-    );
-  });
+  const isMobile = /iPhone|Android/i.test(navigator.userAgent);
+  const url = isMobile
+    ? `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song%20Request`
+    : `https://venmo.com/${settings.venmoUsername}?txn=pay&amount=${amount}&note=Song%20Request`;
+  
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank');
+  } else {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Venmo Not Available', 'Please make sure Venmo is installed on your device.');
+    });
+  }
 };
-3656
 
   const renderSongItem = ({ item }) => (
     <TouchableOpacity

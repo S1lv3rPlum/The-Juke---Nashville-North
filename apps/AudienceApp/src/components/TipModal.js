@@ -45,15 +45,19 @@ export default function TipModal({
   };
 
   const openVenmo = (amount) => {
-    const venmoUrl = `venmo://paycharge?txn=pay&recipients=${venmoUsername}&amount=${amount}&note=Tip for the band!`;
-    
-    Linking.openURL(venmoUrl).catch(() => {
-      Alert.alert(
-        'Venmo Not Available',
-        'Please make sure Venmo is installed on your device.'
-      );
+  const isMobile = /iPhone|Android/i.test(navigator.userAgent);
+  const url = isMobile
+    ? `venmo://paycharge?txn=pay&recipients=${venmoUsername}&amount=${amount}&note=Tip%20for%20the%20band!`
+    : `https://venmo.com/${venmoUsername}?txn=pay&amount=${amount}&note=Tip%20for%20the%20band!`;
+  
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank');
+  } else {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Venmo Not Available', 'Please make sure Venmo is installed on your device.');
     });
-  };
+  }
+};
 
   const handleCustomSubmit = () => {
     const amount = parseFloat(customAmount);
