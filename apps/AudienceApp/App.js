@@ -14,23 +14,25 @@ export default function App() {
   const navigationRef = useRef();
 
   useEffect(() => {
-    handleInitialURL(navigationRef.current);
-
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      try {
-        if (navigationRef.current) {
-          handleDeepLink(url, navigationRef.current, database);
-        }
-      } catch (e) {
-        console.log('Error handling URL event', e);
+  const subscription = Linking.addEventListener('url', ({ url }) => {
+    try {
+      if (navigationRef.current) {
+        handleDeepLink(url, navigationRef.current, database);
       }
-    });
+    } catch (e) {
+      console.log('Error handling URL event', e);
+    }
+  });
 
-    return () => subscription.remove();
-  }, []);
+  return () => subscription.remove();
+}, []);
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking}>
+    <NavigationContainer 
+  ref={navigationRef} 
+  linking={linking}
+  onReady={() => handleInitialURL(navigationRef.current)}
+>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="BandSelection"
