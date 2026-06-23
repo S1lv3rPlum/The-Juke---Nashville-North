@@ -76,7 +76,12 @@ export default function SignupScreen({ navigation }) {
         settings: {
           priorityBoostPrice: 10,
           maxRequests: 10,
-          isLive: false
+          isLive: false,
+          venmoUsername: '',
+         enableTips: false,
+         tipAmount1: 5,
+         tipAmount2: 10,
+         logoUrl: '',
         },
         songs: {},
         setList: {},
