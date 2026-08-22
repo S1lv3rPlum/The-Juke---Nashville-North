@@ -11,7 +11,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { database } from '../../../firebaseConfig';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, onValue, update, get} from 'firebase/database';
 import { auth } from '../../../firebaseConfig';
 import { ActivityIndicator } from 'react-native';
   
@@ -25,7 +25,16 @@ export default function BandLeaderApp() {
   useEffect(() => {
   const user = auth.currentUser;
   if (user) {
-    setBandId(user.uid);
+    const bandDirRef = ref(database, 'bandDirectory');
+    get(bandDirRef).then((snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const ourBand = Object.values(data).find(b => b.authUid === user.uid);
+        if (ourBand) {
+          setBandId(ourBand.bandSlug);
+        }
+      }
+    });
   }
 }, []);
 
