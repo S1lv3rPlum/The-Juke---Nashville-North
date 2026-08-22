@@ -21,6 +21,9 @@ export default function BandLeaderApp() {
   const [settings, setSettings] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [bandId, setBandId] = useState(null);
+  const [allRequests, setAllRequests] = useState([]);
+  const [songs, setSongs] = useState([]);
+  const settingsRef2 = React.useRef({});
   
   useEffect(() => {
   const user = auth.currentUser;
@@ -42,11 +45,47 @@ useEffect(() => {
   if (!bandId) return; // DON'T load data until we have bandId
   
   // Load only confirmed requests
-  const requestsRef = ref(database, `bands/${bandId}/requests`); // ← CHANGED
-  const unsubscribe = onValue(requestsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const confirmed = Object.values(data)
+  const requestsRef = ref(database, `bands/${bandId}/requests`);
+const unsubscribe = onValue(requestsRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    const all = Object.values(data).filter(req => req.status !== 'played');
+    setAllRequests(all);
+
+    const isVoteMode = settingsRef2.current.requestMode === 'vote';
+    console.log('isVoteMode:', isVoteMode, 'requestMode:', settingsRef2.current.requestMode);
+
+if (isVoteMode) {
+      // Vote mode: sort by vote count, show top 5
+      const songVoteCounts = {};
+      all.forEach(req => {
+        if (!songVoteCounts[req.songId]) {
+          songVoteCounts[req.songId] = {
+            songId: req.songId,
+            songTitle: req.songTitle,
+            artist: req.artist,
+            votes: 0,
+            firstTimestamp: req.timestamp,
+          };
+        }
+        songVoteCounts[req.songId].votes++;
+        if (req.timestamp < songVoteCounts[req.songId].firstTimestamp) {
+          songVoteCounts[req.songId].firstTimestamp = req.timestamp;
+        }
+      });
+
+      console.log('songVoteCounts:', JSON.stringify(songVoteCounts));
+      const sorted = Object.values(songVoteCounts)
+        .sort((a, b) => {
+          if (b.votes !== a.votes) return b.votes - a.votes;
+          return a.firstTimestamp - b.firstTimestamp;
+        })
+        .slice(0, 5); // Top 5 only
+
+      setConfirmedRequests(sorted);
+    } else {
+      // Paid mode: show confirmed requests
+      const confirmed = all
         .filter(req => req.status === 'confirmed')
         .sort((a, b) => {
           if (a.priorityBoost && !b.priorityBoost) return -1;
@@ -54,20 +93,60 @@ useEffect(() => {
           return a.timestamp - b.timestamp;
         });
       setConfirmedRequests(confirmed);
-    } else {
-      setConfirmedRequests([]);
     }
-  });
+  } else {
+    setConfirmedRequests([]);
+    setAllRequests([]);
+  }
+});
 
-  // Load settings
-  const settingsRef = ref(database, `bands/${bandId}/settings`); // ← CHANGED
-  const settingsUnsub = onValue(settingsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      setSettings(data);
-    }
-  });
+ // Load settings
+const settingsRef = ref(database, `bands/${bandId}/settings`);
+const settingsUnsub = onValue(settingsRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    setSettings(data);
+    settingsRef2.current = data;
+    console.log('Leader settings:', JSON.stringify(data));
 
+    // Re-trigger request processing now that settings are loaded
+    const requestsSnapshot = ref(database, `bands/${bandId}/requests`);
+    get(requestsSnapshot).then((snap) => {
+      const reqData = snap.val();
+      if (reqData) {
+        const all = Object.values(reqData).filter(req => req.status !== 'played');
+        setAllRequests(all);
+        const isVoteMode = data.requestMode === 'vote';
+        console.log('Re-processing with isVoteMode:', isVoteMode);
+        if (isVoteMode) {
+          const songVoteCounts = {};
+          all.forEach(req => {
+            if (!songVoteCounts[req.songId]) {
+              songVoteCounts[req.songId] = {
+                songId: req.songId,
+                songTitle: req.songTitle,
+                artist: req.artist,
+                votes: 0,
+                firstTimestamp: req.timestamp,
+              };
+            }
+            songVoteCounts[req.songId].votes++;
+            if (req.timestamp < songVoteCounts[req.songId].firstTimestamp) {
+              songVoteCounts[req.songId].firstTimestamp = req.timestamp;
+            }
+          });
+          const sorted = Object.values(songVoteCounts)
+            .sort((a, b) => {
+              if (b.votes !== a.votes) return b.votes - a.votes;
+              return a.firstTimestamp - b.firstTimestamp;
+            })
+            .slice(0, 5);
+          setConfirmedRequests(sorted);
+        }
+      }
+    });
+  }
+});
   return () => {
     unsubscribe();
     settingsUnsub();
@@ -79,24 +158,41 @@ useEffect(() => {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  const markAsPlayed = async (request) => {
+  const markAsPlayed = async (item) => {
+  const isVoteMode = settingsRef2.current.requestMode === 'vote';
+
   try {
-    const requestRef = ref(database, `bands/${bandId}/requests/${request.id}`);
-    await update(requestRef, {
-      status: 'played',
-      playedTimestamp: Date.now()
-    });
-    // No alert - song is silently marked as played and removed from queue
+    if (isVoteMode) {
+      // In vote mode, mark ALL votes for this song as played
+      const updates = {};
+      allRequests
+        .filter(req => req.songId === item.songId)
+        .forEach(req => {
+          updates[`bands/${bandId}/requests/${req.id}/status`] = 'played';
+          updates[`bands/${bandId}/requests/${req.id}/playedTimestamp`] = Date.now();
+        });
+      await update(ref(database), updates);
+    } else {
+      // In paid mode, mark single request as played
+      const requestRef = ref(database, `bands/${bandId}/requests/${item.id}`);
+      await update(requestRef, {
+        status: 'played',
+        playedTimestamp: Date.now()
+      });
+    }
   } catch (error) {
     Alert.alert('Error', 'Failed to mark as played.');
     console.error(error);
   }
 };
 
-  const renderRequest = ({ item, index }) => (
+  const renderRequest = ({ item, index }) => {
+  const isVoteMode = settings.requestMode === 'vote';
+
+  return (
     <View style={[
       styles.requestCard,
-      item.priorityBoost && styles.priorityCard,
+      !isVoteMode && item.priorityBoost && styles.priorityCard,
       index === 0 && styles.nextSongCard
     ]}>
       {index === 0 && (
@@ -104,8 +200,8 @@ useEffect(() => {
           <Text style={styles.nextBadgeText}>▶ NEXT UP</Text>
         </View>
       )}
-      
-      {item.priorityBoost && (
+
+      {!isVoteMode && item.priorityBoost && (
         <View style={styles.priorityBadge}>
           <Text style={styles.priorityBadgeText}>⚡ PRIORITY</Text>
         </View>
@@ -117,12 +213,18 @@ useEffect(() => {
 
       <Text style={styles.songTitle}>{item.songTitle}</Text>
       <Text style={styles.artist}>{item.artist}</Text>
-      
+
       <View style={styles.infoRow}>
-        <Text style={styles.customerName}>👤 {item.customerName}</Text>
-        <Text style={styles.price}>
-          ${item.priorityBoost ? item.price + settings.priorityBoostPrice : item.price}
-        </Text>
+        {isVoteMode ? (
+          <Text style={styles.voteCount}>🗳️ {item.votes} votes</Text>
+        ) : (
+          <>
+            <Text style={styles.customerName}>👤 {item.customerName}</Text>
+            <Text style={styles.price}>
+              ${item.priorityBoost ? item.price + settings.priorityBoostPrice : item.price}
+            </Text>
+          </>
+        )}
       </View>
 
       <TouchableOpacity
@@ -133,6 +235,7 @@ useEffect(() => {
       </TouchableOpacity>
     </View>
   );
+};
 
 if (!bandId) {
     return (
@@ -148,7 +251,9 @@ if (!bandId) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🎤 Band Leader</Text>
         <View style={styles.headerStats}>
-          <Text style={styles.statsText}>Queue: {confirmedRequests.length}</Text>
+          <Text style={styles.statsText}>
+  {settings.requestMode === 'vote' ? `Top ${confirmedRequests.length} 🗳️` : `Queue: ${confirmedRequests.length}`}
+</Text>
         </View>
       </View>
 
@@ -161,9 +266,9 @@ if (!bandId) {
       )}
 
       <FlatList
-        data={confirmedRequests}
-        renderItem={renderRequest}
-        keyExtractor={(item) => item.id}
+  data={confirmedRequests}
+  renderItem={renderRequest}
+  keyExtractor={(item) => item.id || item.songId}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl
@@ -429,6 +534,11 @@ toggleButtonText: {
   color: '#fff',
   fontSize: 13,
   fontWeight: 'bold',
+},
+voteCount: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#fbbf24',
 },
 loadingContainer: {
     flex: 1,
