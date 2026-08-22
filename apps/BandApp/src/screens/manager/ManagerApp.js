@@ -66,6 +66,11 @@ const [breakDuration, setBreakDuration] = useState('15');
 const [qrModalVisible, setQrModalVisible] = useState(false);
 const [bandSlug, setBandSlug] = useState('');
 
+
+// Set audience 'mode'
+const [requestMode, setRequestMode] = useState('paid');
+const [newCooldownMinutes, setNewCooldownMinutes] = useState('20');
+
 // edit break modal
 const [editBreakModalVisible, setEditBreakModalVisible] = useState(false);
 const [editingBreak, setEditingBreak] = useState(null);
@@ -73,11 +78,23 @@ const [editBreakDuration, setEditBreakDuration] = useState('');
 
   useEffect(() => {
     // Get bandId from authenticated user
-    const user = auth.currentUser;
-    if (user) {
-      setBandId(user.uid);
-    }
-  }, []);
+  const user = auth.currentUser;
+  if (user) {
+    const bandDirRef = ref(database, 'bandDirectory');
+    get(bandDirRef).then((snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const ourBand = Object.values(data).find(b => b.authUid === user.uid);
+        if (ourBand) {
+          setBandId(ourBand.bandSlug);
+          setBandSlug(ourBand.bandSlug);
+        } else {
+          Alert.alert('Error', 'No band found for this account.');
+        }
+      }
+    });
+  }
+}, []);
 
   useEffect(() => {
     if (!bandId) return; // Don't load until we have bandId
@@ -158,6 +175,8 @@ const settingsUnsub = onValue(settingsRef, (snapshot) => {
     setNewTipAmount1(data.tipAmount1?.toString() || '5');
     setNewTipAmount2(data.tipAmount2?.toString() || '10');
     setNewLogoUrl(data.logoUrl || '');
+    setRequestMode(data.requestMode || 'paid');
+    setNewCooldownMinutes(data.cooldownMinutes?.toString() || '20');
   }
 });
 
@@ -169,10 +188,10 @@ if (user) {
   bandDirUnsub = onValue(bandDirRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      const ourBand = Object.values(data).find(b => b.bandId === user.uid);
-      if (ourBand) {
-        setBandSlug(ourBand.bandSlug || '');
-      }
+      const ourBand = Object.values(data).find(b => b.authUid === user.uid);
+if (ourBand) {
+  setBandSlug(ourBand.bandSlug || '');
+}
     }
   });
 }
@@ -296,7 +315,9 @@ if (user) {
       enableTips: newEnableTips,
       tipAmount1: tip1,
       tipAmount2: tip2,
-      logoUrl: newLogoUrl.trim()
+      logoUrl: newLogoUrl.trim(),
+      requestMode: requestMode,
+      cooldownMinutes: parseInt(newCooldownMinutes),
     });
     Alert.alert('Success', 'Settings updated successfully!');
     setSettingsModalVisible(false);
@@ -1070,17 +1091,55 @@ return (
 
         {/* Song Request Settings */}
         <Text style={styles.sectionHeader}>Song Request Settings</Text>
+
+        {/* Request Mode Toggle */}
+<View style={styles.settingItem}>
+  <Text style={styles.settingLabel}>Request Mode</Text>
+  <View style={styles.modeToggleContainer}>
+    <Text style={[styles.modeLabel, requestMode === 'paid' && styles.modeLabelActive]}>
+      Paid
+    </Text>
+    <TouchableOpacity
+      style={[styles.toggleSwitch, requestMode === 'vote' && styles.toggleSwitchActive]}
+      onPress={() => setRequestMode(requestMode === 'paid' ? 'vote' : 'paid')}
+    >
+      <View style={[styles.toggleThumb, requestMode === 'vote' && styles.toggleThumbActive]} />
+    </TouchableOpacity>
+    <Text style={[styles.modeLabel, requestMode === 'vote' && styles.modeLabelActive]}>
+      Vote
+    </Text>
+  </View>
+  <Text style={styles.settingHint}>
+    {requestMode === 'paid'
+      ? 'Customers pay to request songs'
+      : 'Customers vote for free - top songs get played'}
+  </Text>
+</View>
+
+{/* Cooldown Minutes */}
+<View style={styles.settingItem}>
+  <Text style={styles.settingLabel}>Cooldown Between Requests (minutes)</Text>
+  <TextInput
+    style={styles.priceInput}
+    value={newCooldownMinutes}
+    onChangeText={setNewCooldownMinutes}
+    keyboardType="numeric"
+    placeholder="20"
+  />
+</View>
         
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>Priority Boost Price ($)</Text>
-          <TextInput
-            style={styles.priceInput}
-            value={newPriorityPrice}
-            onChangeText={setNewPriorityPrice}
-            keyboardType="numeric"
-            placeholder="10"
-          />
-        </View>
+        {requestMode === 'paid' && (
+  <View style={styles.settingItem}>
+    <Text style={styles.settingLabel}>Priority Boost Price ($)</Text>
+    <TextInput
+      style={styles.priceInput}
+      value={newPriorityPrice}
+      onChangeText={setNewPriorityPrice}
+      keyboardType="numeric"
+      placeholder="10"
+    />
+  </View>
+)}
 
         <View style={styles.settingItem}>
           <Text style={styles.settingLabel}>Max Song Requests</Text>
@@ -2050,6 +2109,21 @@ toggleThumbActive: {
 urlInput: {
   minHeight: 60,
   textAlignVertical: 'top',
+},
+modeToggleContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 15,
+  marginVertical: 10,
+},
+modeLabel: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  color: '#aaa',
+},
+modeLabelActive: {
+  color: '#2c5282',
 },
 scrollModalContent: {
   flexGrow: 1,
