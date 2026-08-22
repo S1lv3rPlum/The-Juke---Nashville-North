@@ -16,7 +16,7 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [logoHeight, setLogoHeight] = useState(0);
   const LOGO_WIDTH_RATIO = 0.4;
-  const MAX_LOGO_HEIGHT = 100;
+  const MAX_LOGO_HEIGHT = 80;
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener?.('change', ({ window }) => {
@@ -52,63 +52,50 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
     <View style={styles.headerWrapper}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          {/* 2x3 Grid Layout */}
-          <View style={styles.gridContainer}>
-            {/* Column A (Left) - 2 rows */}
-            <View style={styles.leftColumn}>
-              {/* A1 - Empty (Row 1) */}
-              <View style={styles.row1Cell} />
-              
-              {/* A2 - Back Button (Row 2) */}
-              {onBackPress && (
-                <TouchableOpacity 
-                  style={[styles.backButton, styles.row2Cell]} 
-                  onPress={onBackPress}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.backButtonText}>← Back</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+          {/* Left Column - Back Button */}
+          <View style={styles.leftColumn}>
+          </View>
 
-            {/* Column B (Center) - Logo/Band Name spans both rows (B1:B2 merged) */}
-            <View style={styles.centerColumn}>
-              {logoUrl ? (
-                <Image
-                  source={{ uri: logoUrl }}
-                  style={{
-                    width: logoWidth,
-                    height: logoHeight || Math.min(50, MAX_LOGO_HEIGHT), // Reduced max
-                    resizeMode: 'contain',
-                  }}
-                />
-              ) : (
-                <Text style={styles.bandNameFallback}>{bandName || 'Live Jukebox'}</Text>
-              )}
-            </View>
+          {/* Center Column - Logo */}
+          <View style={styles.centerColumn}>
+            {logoUrl ? (
+              <Image
+                source={{ uri: logoUrl }}
+                style={{
+                  width: logoWidth,
+                  height: logoHeight || Math.min(50, MAX_LOGO_HEIGHT),
+                  resizeMode: 'contain',
+                }}
+              />
+            ) : (
+              <Text style={styles.bandNameFallback}>{bandName || 'Live Jukebox'}</Text>
+            )}
+          </View>
 
-            {/* Column C (Right) - 2 rows */}
-            <View style={styles.rightColumn}>
-              {/* C1 - Tip Spittoon (Row 1) */}
-              <View style={styles.row1Cell}>
-                {enableTips && (
-                  <SpittoonTip onPress={onTipPress} size={44} />
-                )}
+          {/* Right Column - Spittoon AND Queue side by side */}
+          <View style={styles.rightColumn}>
+            {/* Tip Spittoon */}
+            {enableTips && (
+              <View style={styles.spittoonWrapper}>
+                <SpittoonTip onPress={onTipPress} size={44} />
               </View>
-              
-              {/* C2 - Queue Button (Row 2) */}
-              {onQueuePress && (
-                <TouchableOpacity 
-                  style={[styles.queueButton, styles.row2Cell]} 
-                  onPress={onQueuePress}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.queueButtonText} numberOfLines={1}>
-                    Queue ({queueCount})
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            )}
+
+            {/* Gap between buttons */}
+            <View style={styles.buttonGap} />
+
+            {/* Queue Button */}
+            {onQueuePress && (
+              <TouchableOpacity
+                style={styles.queueButton}
+                onPress={onQueuePress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.queueButtonText} numberOfLines={1}>
+                  Queue ({queueCount})
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -118,65 +105,47 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
 
 const styles = StyleSheet.create({
   headerWrapper: {
-    backgroundColor: '#ea580c', // Orange gradient start
+    backgroundColor: '#ea580c',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   safeArea: {
     backgroundColor: 'transparent',
   },
   header: {
+    flexDirection: 'row',           // All columns side by side
+    alignItems: 'center',           // Vertically centered
     paddingHorizontal: 8,
-    paddingVertical: 0, // Remove all vertical padding
+    paddingVertical: 8,
+    minHeight: 70,                  // Enough room for spittoon
     backgroundColor: 'transparent',
-    backgroundImage: 'linear-gradient(to right, #ea580c, #f97316, #ea580c)',
   },
-  gridContainer: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    height: 60, // Reduced from 64
-  },
-  
-  // Shared row styles
-  row1Cell: {
-    height: 30, // Reduced from 32
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  row2Cell: {
-    height: 30, // Reduced from 32
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  
-  // Column A (Left)
+
+  // Left Column
   leftColumn: {
     width: 70,
-    justifyContent: 'space-between', // Distributes rows evenly
-  },
-  emptyCell: {
-    height: 0, // Remove this - using row1Cell/row2Cell instead
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   backButton: {
-    backgroundColor: '#fff', // Changed from rgba(0, 0, 0, 0.3) to white
+    backgroundColor: '#fff',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#fed7aa', // Match queue button border
+    borderColor: '#fed7aa',
   },
   backButtonText: {
-    color: '#9a3412', // Match queue button text color
+    color: '#9a3412',
     fontSize: 12,
     fontWeight: 'bold',
   },
-  
-  // Column B (Center) - Merged cells spanning both rows
+
+  // Center Column
   centerColumn: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
-    height: 60, // Match new grid height
   },
   bandNameFallback: {
     color: '#fff',
@@ -184,24 +153,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  
-  // Column C (Right) - 2 rows
+
+  // Right Column - Spittoon and Queue SIDE BY SIDE
   rightColumn: {
-    width: 90,
-    justifyContent: 'space-between', // Distributes rows evenly
+    flexDirection: 'row',           // Side by side!
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: 130,                     // Wider to fit both
+  },
+  spittoonWrapper: {
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  spittoonCell: {
-    // Removed - using row1Cell directly
+  buttonGap: {
+    width: 10,                      // Gap between spittoon and queue button
   },
   queueButton: {
     backgroundColor: '#fff',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#fed7aa',
-    minWidth: 80,
+    minWidth: 75,
   },
   queueButtonText: {
     color: '#9a3412',

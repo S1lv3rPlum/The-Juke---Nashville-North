@@ -23,7 +23,7 @@ export default function QueueModal({ visible, onClose, requests, myRequests }) {
         </View>
         <View style={styles.requestStatus}>
           <Text style={[styles.statusText, item.status === 'confirmed' ? styles.confirmed : styles.pending]}>
-            {item.status === 'confirmed' ? '✓ Paid' : 'Pending'}
+            {item.paymentMethod === 'vote' ? '🗳️ Voted' : item.status === 'confirmed' ? '✓ Paid' : 'Requested'}
           </Text>
         </View>
       </View>
