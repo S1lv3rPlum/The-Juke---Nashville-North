@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   Linking,
+  Platform,  
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { database } from '../../firebaseConfig';
@@ -97,8 +98,8 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
 
   const filterAvailableSongs = (allSongsList, requestsList, setListItems) => {
     // Get confirmed request song IDs
-    const confirmedRequests = requestsList.filter(r => r.status === 'confirmed');
-    const confirmedSongIds = confirmedRequests.map(r => r.songId);
+    const activeRequests = requestsList.filter(r => r.status === 'pending' || r.status === 'confirmed');
+    const activeSongIds = activeRequests.map(r => r.songId);  
 
     // Get set list song IDs
     const setListSongIds = setListItems
@@ -110,7 +111,7 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
       song =>
         song.isRequestable &&
         !setListSongIds.includes(song.id) &&
-        !confirmedSongIds.includes(song.id)
+        !activeSongIds.includes(song.id)
     );
 
     setSongs(availableSongs);
@@ -255,15 +256,18 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
     }
   };
 
- const openVenmo = (amount) => {
+const openVenmo = (amount) => {
   const venmoUrl = `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song Request`;
-
-  Linking.openURL(venmoUrl).catch(() => {
-    Alert.alert(
-      "Venmo Not Available",
-      "Please make sure Venmo is installed on your device."
-    );
-  });
+  
+  if (Platform.OS === 'web') {
+    // Web browser - go straight to Venmo website
+    Linking.openURL(`https://account.venmo.com/${settings.venmoUsername}`);
+  } else {
+    // Mobile - try Venmo app first, fallback to website
+    Linking.openURL(venmoUrl).catch(() => {
+      Linking.openURL(`https://account.venmo.com/${settings.venmoUsername}`);
+    });
+  }
 };
 
 
