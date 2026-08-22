@@ -31,6 +31,8 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
   const [cooldownTime, setCooldownTime] = useState(0);
   const [settings, setSettings] = useState({});
   const [myRequests, setMyRequests] = useState([]);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
 
     React.useLayoutEffect(() => {
     if (bandName) {
@@ -114,14 +116,32 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
         !activeSongIds.includes(song.id)
     );
 
-    setSongs(availableSongs);
+    // In vote mode, sort by vote count (descending), ties broken by first timestamp
+const isVoteModeSort = settings.requestMode === 'vote';
 
-    if (searchQuery) {
-      handleSearch(searchQuery, availableSongs);
-    } else {
-      setFilteredSongs(availableSongs);
-    }
-  };
+let sortedSongs = availableSongs;
+if (isVoteModeSort) {
+  sortedSongs = [...availableSongs].sort((a, b) => {
+    const aVotes = requests.filter(r => r.songId === a.id).length;
+    const bVotes = requests.filter(r => r.songId === b.id).length;
+    if (bVotes !== aVotes) return bVotes - aVotes;
+    // Tie breaker - first vote timestamp
+    const aFirst = requests.filter(r => r.songId === a.id)
+      .sort((x, y) => x.timestamp - y.timestamp)[0]?.timestamp || 0;
+    const bFirst = requests.filter(r => r.songId === b.id)
+      .sort((x, y) => x.timestamp - y.timestamp)[0]?.timestamp || 0;
+    return aFirst - bFirst;
+  });
+}
+
+setSongs(sortedSongs);
+
+if (searchQuery) {
+  handleSearch(searchQuery, sortedSongs);
+} else {
+  setFilteredSongs(sortedSongs);
+}
+  };  // ← closes filterAvailableSongs
 
   const loadMyRequests = async () => {
     try {
@@ -146,7 +166,8 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
     try {
       const last = await AsyncStorage.getItem(`lastRequestTime_${bandId}`);
       if (last) {
-        const remainingMs = 120000 - (Date.now() - parseInt(last));
+        const cooldownMs = ((settings.cooldownMinutes || 2) * 60 * 1000);
+        const remainingMs = cooldownMs - (Date.now() - parseInt(last));
         if (remainingMs > 0) {
           setCooldownTime(Math.ceil(remainingMs / 1000));
           startCooldownTimer(remainingMs);
@@ -160,7 +181,8 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
   const startCooldownTimer = (remainingMs) => {
     const interval = setInterval(async () => {
       const last = await AsyncStorage.getItem(`lastRequestTime_${bandId}`);
-      const timeLeft = Math.ceil((120000 - (Date.now() - parseInt(last || '0'))) / 1000);
+      const cooldownMs = ((settings.cooldownMinutes || 2) * 60 * 1000);
+      const timeLeft = Math.ceil((cooldownMs - (Date.now() - parseInt(last || '0'))) / 1000);
       if (timeLeft <= 0) {
         setCooldownTime(0);
         clearInterval(interval);
@@ -233,7 +255,7 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
 
       setModalVisible(false);
       setCooldownTime(120);
-      startCooldownTimer(120000);
+      startCooldownTimer((settings.cooldownMinutes || 2) * 60 * 1000);
 
       if (paymentMethod === 'venmo') {
         const amount = priorityBoost
@@ -256,6 +278,50 @@ export default function RequestSongsScreen({ bandId,route, navigation }) {
     }
   };
 
+  const showToast = (message) => {
+  setToastMessage(message);
+  setToastVisible(true);
+  setTimeout(() => setToastVisible(false), 3000);
+};
+const submitVote = async (song) => {
+  if (cooldownTime > 0) {
+    Alert.alert('Cooldown Active', `Please wait ${cooldownTime} seconds before voting again.`);
+    return;
+  }
+
+  const requestsRef = ref(database, `bands/${bandId}/requests`);
+  const newRef = push(requestsRef);
+
+  const voteData = {
+    id: newRef.key,
+    songId: song.id,
+    songTitle: song.title,
+    artist: song.artist,
+    price: 0,
+    customerName: 'Anonymous',
+    timestamp: Date.now(),
+    paymentMethod: 'vote',
+    status: 'confirmed',
+    priorityBoost: false,
+    voteCount: 1,
+    playedTimestamp: null,
+  };
+
+console.log('Submitting vote for:', song.title, 'bandId:', bandId);
+try {
+  await set(newRef, voteData);
+    await saveMyRequest(newRef.key);
+    const cooldownMs = ((settings.cooldownMinutes || 2) * 60 * 1000);
+    await AsyncStorage.setItem(`lastRequestTime_${bandId}`, Date.now().toString());
+    setCooldownTime(Math.ceil(cooldownMs / 1000));
+    startCooldownTimer(cooldownMs);
+    showToast(`✅ Voted for "${song.title}"!`);
+  } catch (e) {
+    Alert.alert('Error', 'Failed to submit vote.');
+    console.error(e);
+  }
+};
+
 const openVenmo = (amount) => {
   const venmoUrl = `venmo://paycharge?txn=pay&recipients=${settings.venmoUsername}&amount=${amount}&note=Song Request`;
   
@@ -271,44 +337,76 @@ const openVenmo = (amount) => {
 };
 
 
-  const renderSongItem = ({ item }) => (
-  <TouchableOpacity
-    style={styles.songCardWrapper}
-    onPress={() => openRequestModal(item)}
-    disabled={cooldownTime > 0}
-    activeOpacity={0.8}
-  >
-    {/* Glow layers */}
-    <View style={styles.glowLayer1} />
-    <View style={styles.glowLayer2} />
-    
-    <View style={styles.songCard}>
-      <View style={styles.songInfo}>
-        <Text style={styles.songTitle}>
-          {item.title}
-          {item.isLineDance && ' 👢'}
-        </Text>
-        <Text style={styles.songArtist}>{item.artist}</Text>
+  const renderSongItem = ({ item, index }) => {
+  const isVoteMode = settings.requestMode === 'vote';
+  const voteCount = requests.filter(r => r.songId === item.id).length;
+
+  return (
+    <TouchableOpacity
+      style={styles.songCardWrapper}
+      onPress={() => isVoteMode ? submitVote(item) : openRequestModal(item)}
+      disabled={cooldownTime > 0}
+      activeOpacity={0.8}
+    >
+      {/* Glow layers */}
+      <View style={styles.glowLayer1} />
+      <View style={styles.glowLayer2} />
+
+      <View style={styles.songCard}>
+        {/* Position number in vote mode */}
+        {isVoteMode && (
+          <Text style={styles.votePosition}>#{index + 1}</Text>
+        )}
+
+        <View style={styles.songInfo}>
+          <Text style={styles.songTitle}>
+            {item.title}
+            {item.isLineDance && ' 👢'}
+          </Text>
+          <Text style={styles.songArtist}>{item.artist}</Text>
+        </View>
+
+        {/* Vote count OR price */}
+        {isVoteMode ? (
+          <Text style={styles.voteCount}>{voteCount} 🗳️</Text>
+        ) : (
+          <Text style={styles.songPrice}>${item.price}</Text>
+        )}
       </View>
-      <Text style={styles.songPrice}>${item.price}</Text>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
   const confirmedCount = requests.filter(r => r.status === 'confirmed').length;
   const maxRequests = settings.maxRequests || 10;
 
-  return (
+  const isVoteMode = settings.requestMode === 'vote';
+
+return (
     <View style={styles.container}>
+      {/* Toast Notification */}
+      {toastVisible && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
+
       {cooldownTime > 0 && (
         <View style={styles.cooldownBanner}>
           <Text style={styles.cooldownText}>⏱️ Cooldown: {cooldownTime}s remaining</Text>
         </View>
       )}
 
-      <View style={styles.requestLimitBanner}>
-        <Text style={styles.requestLimitText}>🎵 {confirmedCount}/{maxRequests} song slots filled</Text>
-      </View>
+      {/* Vote Mode Banner */}
+      {isVoteMode ? (
+        <View style={styles.voteModeBanner}>
+          <Text style={styles.voteModeText}>🗳️ Tap a song to vote! Top songs get played first.</Text>
+        </View>
+      ) : (
+        <View style={styles.requestLimitBanner}>
+          <Text style={styles.requestLimitText}>🎵 {confirmedCount}/{maxRequests} song slots filled</Text>
+        </View>
+      )}
 
       <TextInput
         style={styles.searchInput}
@@ -416,6 +514,48 @@ const styles = StyleSheet.create({
   cancelButton: { padding: 12, alignItems: 'center' },
   cancelButtonText: { color: '#666', fontSize: 16 },
   emptyText: { color: '#ccc', textAlign: 'center', marginTop: 20, fontSize: 16 },
+  votePosition: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#fbbf24',
+  marginRight: 10,
+  minWidth: 35,
+},
+voteCount: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#fbbf24',
+},
+voteModeBanner: {
+  backgroundColor: '#1e3a5f',
+  padding: 10,
+  alignItems: 'center',
+  borderBottomWidth: 1,
+  borderBottomColor: '#4299e1',
+},
+voteModeText: {
+  color: '#4299e1',
+  fontWeight: 'bold',
+  fontSize: 14,
+},
+toast: {
+  position: 'absolute',
+  top: 80,
+  left: 20,
+  right: 20,
+  backgroundColor: '#1e3a5f',
+  padding: 15,
+  borderRadius: 10,
+  alignItems: 'center',
+  zIndex: 999,
+  borderWidth: 1,
+  borderColor: '#4299e1',
+},
+toastText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
 glowLayer1: {
   position: 'absolute',
   top: -3,
