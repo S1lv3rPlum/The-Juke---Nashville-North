@@ -266,9 +266,10 @@ if (!bandId) {
       )}
 
       <FlatList
-  data={confirmedRequests}
-  renderItem={renderRequest}
-  keyExtractor={(item) => item.id || item.songId}
+        style={{ flex: 1 }}
+        data={confirmedRequests}
+        renderItem={renderRequest}
+        keyExtractor={(item) => item.id || item.songId}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl
@@ -293,7 +294,7 @@ if (!bandId) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1a1a1a'
   },
   header: {
     flexDirection: 'row',

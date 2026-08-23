@@ -986,6 +986,7 @@ return (
       <FlatList
         data={pendingRequests}
         renderItem={renderPendingRequest}
+        style={{ flex: 1 }}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={<Text style={styles.emptyText}>No pending requests</Text>}
@@ -993,9 +994,10 @@ return (
     )}
 
     {activeTab === 'confirmed' && (
-      <FlatList
-        data={confirmedRequests}
+      <FlatList 
+      data={confirmedRequests}
         renderItem={renderConfirmedRequest}
+        style={{ flex: 1 }}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={<Text style={styles.emptyText}>No confirmed requests</Text>}
@@ -1027,13 +1029,14 @@ return (
           <Text style={styles.addSongButtonText}>+ Add New Song</Text>
         </TouchableOpacity>
 
-        <FlatList
+       <FlatList
           data={songs.filter(song => {
             if (showLineDanceOnly && !song.isLineDance) return false;
             if (showRequestableOnly && !song.isRequestable) return false;
             return true;
           })}
           renderItem={renderMasterListItem}
+          style={{ flex: 1 }}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={<Text style={styles.emptyText}>No songs in master list</Text>}
@@ -1062,6 +1065,7 @@ return (
         <FlatList
           data={setListItems}
           renderItem={renderSetListItem}
+          style={{ flex: 1 }}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
@@ -1488,7 +1492,7 @@ return (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1a1a1a'
   },
   header: {
     flexDirection: 'row',

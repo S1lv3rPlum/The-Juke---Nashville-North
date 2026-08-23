@@ -4,13 +4,14 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView
+  SafeAreaView,
+  ScrollView
 } from 'react-native';
 
 export default function RoleSelectionScreen({ navigation }) {
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Choose Your Role</Text>
         <Text style={styles.subtitle}>
           Select how you want to use the app
@@ -44,7 +45,7 @@ export default function RoleSelectionScreen({ navigation }) {
             • Streamlined for performing
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -52,10 +53,10 @@ export default function RoleSelectionScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1a1a1a'
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     justifyContent: 'center',
   },
