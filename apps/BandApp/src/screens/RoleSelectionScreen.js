@@ -10,8 +10,9 @@ import {
 
 export default function RoleSelectionScreen({ navigation }) {
   return (
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+  
         <Text style={styles.title}>Choose Your Role</Text>
         <Text style={styles.subtitle}>
           Select how you want to use the app

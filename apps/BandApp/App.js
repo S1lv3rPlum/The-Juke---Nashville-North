@@ -1,6 +1,6 @@
 // BandApp/App.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -16,28 +16,26 @@ import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
 import BandLeaderApp from './src/screens/leader/LeaderApp';
 import ManagerApp from './src/screens/manager/ManagerApp';
 
-import { Platform, View } from 'react-native';
-
-// Fix for web scrolling
-if (Platform.OS === 'web') {
-  const style = document.createElement('style');
-  style.textContent = `
-    html, body, #root {
-      height: 100%;
-      overflow: auto;
-    }
-  `;
-  document.head.appendChild(style);
-  document.body.style.overflow = 'auto';
-  document.documentElement.style.height = '100%';
-  document.body.style.height = '100%';
-}
+// Fix for web scrolling - "deleted to try to fix scroll issue!!"
+//if (Platform.OS === 'web') {
+//  const style = document.createElement('style');
+//  style.textContent = `
+//    html, body, #root {
+//      height: 100%;
+//      overflow: auto;
+//    }
+//  `;
+//  document.head.appendChild(style);
+//  document.body.style.overflow = 'auto';
+//  document.documentElement.style.height = '100%';
+//  document.body.style.height = '100%';
+//}
 
 const Stack = createStackNavigator();
 const DEV_FORCE_LOGIN = false; // Set to false for production
 
 // Auth Stack
-function AppStack() {
+function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
@@ -50,10 +48,12 @@ function AppStack() {
 // Main App Stack (after login)
 function AppStack() {
   return (
-    <Stack.Navigator screenOptions={{ 
-      headerShown: false,
-      contentStyle: { flex: 1 }
-    }}>
+    <Stack.Navigator
+        screenOptions={{
+        headerShown: false,
+        contentStyle: { flex: 1 }
+      }}
+    >
       <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
       <Stack.Screen name="ManagerApp" component={ManagerApp} />
       <Stack.Screen name="LeaderApp" component={BandLeaderApp} />
@@ -91,9 +91,9 @@ export default function App() {
   }
 
   return (
-      <NavigationContainer>
-        {user ? <AppStack /> : <AuthStack />}
-      </NavigationContainer>
+<NavigationContainer>
+  {user ? <AppStack /> : <AuthStack />}
+</NavigationContainer>
   );
 }
 
