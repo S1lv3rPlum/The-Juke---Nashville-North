@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig';
 
@@ -16,8 +16,8 @@ import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
 import BandLeaderApp from './src/screens/leader/LeaderApp';
 import ManagerApp from './src/screens/manager/ManagerApp';
 
-const Stack = createStackNavigator();
-const DEV_FORCE_LOGIN = false; // Set to false for production
+const Stack = createNativeStackNavigator();
+const DEV_FORCE_LOGIN = false; // Set to true for development testing
 
 // Auth Stack
 function AuthStack() {
@@ -33,7 +33,11 @@ function AuthStack() {
 // Main App Stack (after login)
 function AppStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
       <Stack.Screen name="ManagerApp" component={ManagerApp} />
       <Stack.Screen name="LeaderApp" component={BandLeaderApp} />
@@ -48,7 +52,7 @@ export default function App() {
   useEffect(() => {
     if (DEV_FORCE_LOGIN) {
       // Skip auth for development testing
-      setUser({ uid: "Nashville-North" });
+      setUser({ uid: 'Nashville-North' });
       setLoading(false);
       return;
     }
@@ -84,6 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   loadingText: {
     color: '#fff',
     marginTop: 10,
@@ -97,17 +102,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+
   placeholderTitle: {
     fontSize: 48,
     color: '#fff',
     marginBottom: 20,
   },
+
   placeholderText: {
     fontSize: 16,
     color: '#aaa',
     textAlign: 'center',
     lineHeight: 24,
   },
+
   logoutButton: {
     backgroundColor: '#2c5282',
     paddingHorizontal: 30,
@@ -115,6 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 30,
   },
+
   logoutText: {
     color: '#fff',
     fontSize: 16,
