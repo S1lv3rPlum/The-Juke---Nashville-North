@@ -1,8 +1,8 @@
 // BandApp/App.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig';
 
@@ -16,23 +16,8 @@ import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
 import BandLeaderApp from './src/screens/leader/LeaderApp';
 import ManagerApp from './src/screens/manager/ManagerApp';
 
-// Fix for web scrolling - "deleted to try to fix scroll issue!!"
-//if (Platform.OS === 'web') {
-//  const style = document.createElement('style');
-//  style.textContent = `
-//    html, body, #root {
-//      height: 100%;
-//      overflow: auto;
-//    }
-//  `;
-//  document.head.appendChild(style);
-//  document.body.style.overflow = 'auto';
-//  document.documentElement.style.height = '100%';
-//  document.body.style.height = '100%';
-//}
-
-const Stack = createStackNavigator();
-const DEV_FORCE_LOGIN = false; // Set to false for production
+const Stack = createNativeStackNavigator();
+const DEV_FORCE_LOGIN = false; // Set to true for development testing
 
 // Auth Stack
 function AuthStack() {
@@ -49,9 +34,8 @@ function AuthStack() {
 function AppStack() {
   return (
     <Stack.Navigator
-        screenOptions={{
+      screenOptions={{
         headerShown: false,
-        contentStyle: { flex: 1 }
       }}
     >
       <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
@@ -68,7 +52,7 @@ export default function App() {
   useEffect(() => {
     if (DEV_FORCE_LOGIN) {
       // Skip auth for development testing
-      setUser({ uid: "Nashville-North" });
+      setUser({ uid: 'Nashville-North' });
       setLoading(false);
       return;
     }
@@ -91,9 +75,9 @@ export default function App() {
   }
 
   return (
-<NavigationContainer>
-  {user ? <AppStack /> : <AuthStack />}
-</NavigationContainer>
+    <NavigationContainer>
+      {user ? <AppStack /> : <AuthStack />}
+    </NavigationContainer>
   );
 }
 
@@ -104,6 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   loadingText: {
     color: '#fff',
     marginTop: 10,
@@ -117,17 +102,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+
   placeholderTitle: {
     fontSize: 48,
     color: '#fff',
     marginBottom: 20,
   },
+
   placeholderText: {
     fontSize: 16,
     color: '#aaa',
     textAlign: 'center',
     lineHeight: 24,
   },
+
   logoutButton: {
     backgroundColor: '#2c5282',
     paddingHorizontal: 30,
@@ -135,6 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 30,
   },
+
   logoutText: {
     color: '#fff',
     fontSize: 16,
