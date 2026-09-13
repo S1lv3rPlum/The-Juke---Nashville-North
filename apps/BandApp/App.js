@@ -19,6 +19,12 @@ import ManagerApp from './src/screens/manager/ManagerApp';
 const Stack = createNativeStackNavigator();
 const DEV_FORCE_LOGIN = false; // Set to true for development testing
 
+// in app browser detection
+function isInAppBrowser() {
+  const ua = navigator.userAgent || navigator.vendor || '';
+  return /FBAN|FBAV|Instagram|Line\/|Twitter|GSA\/|wv\)/i.test(ua);
+}
+
 // Auth Stack
 function AuthStack() {
   return (
@@ -48,6 +54,7 @@ function AppStack() {
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     if (DEV_FORCE_LOGIN) {
@@ -62,14 +69,44 @@ export default function App() {
       setLoading(false);
     });
 
-    return unsubscribe;
+    // Safety net: if auth never resolves, stop spinning forever
+    const timeout = setTimeout(() => {
+      setTimedOut(true);
+    }, 6000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
-  if (loading) {
+  if (isInAppBrowser()) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.placeholderTitle}>🎸</Text>
+        <Text style={styles.loadingText}>
+          Please open this link in Chrome or Safari to sign in{'\n'}
+          (tap ⋮ or ⋯ above and choose "Open in Browser")
+        </Text>
+      </View>
+    );
+  }
+
+  if (loading && !timedOut) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2c5282" />
         <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (loading && timedOut) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>
+          Taking longer than expected. Please open this link in Chrome or Safari directly, then try again.
+        </Text>
       </View>
     );
   }

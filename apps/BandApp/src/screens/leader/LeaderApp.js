@@ -16,7 +16,7 @@ import { auth } from '../../../firebaseConfig';
 import { ActivityIndicator } from 'react-native';
   
 
-export default function BandLeaderApp() {
+export default function BandLeaderApp({ navigation }) {
   const [confirmedRequests, setConfirmedRequests] = useState([]);
   const [settings, setSettings] = useState({});
   const [refreshing, setRefreshing] = useState(false);
@@ -248,14 +248,20 @@ if (!bandId) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎤 Band Leader</Text>
-        <View style={styles.headerStats}>
-          <Text style={styles.statsText}>
-  {settings.requestMode === 'vote' ? `Top ${confirmedRequests.length} 🗳️` : `Queue: ${confirmedRequests.length}`}
-</Text>
-        </View>
-      </View>
+     <View style={styles.header}>
+  <TouchableOpacity
+    style={styles.backButton}
+    onPress={() => navigation.goBack()}
+  >
+    <Text style={styles.backButtonText}>←</Text>
+  </TouchableOpacity>
+  <Text style={styles.headerTitle}>🎤 Band Leader</Text>
+  <View style={styles.headerStats}>
+    <Text style={styles.statsText}>
+      {settings.requestMode === 'vote' ? `Top ${confirmedRequests.length} 🗳️` : `Queue: ${confirmedRequests.length}`}
+    </Text>
+  </View>
+</View>
 
       {confirmedRequests.length > 0 && (
         <View style={styles.summaryBar}>
@@ -314,6 +320,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+  },
+    backButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   statsText: {
     color: '#fff',

@@ -20,7 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native';
 
 
-export default function ManagerApp() {
+export default function ManagerApp({ navigation }) {
   const [bandId, setBandId] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [confirmedRequests, setConfirmedRequests] = useState([]);
@@ -931,16 +931,21 @@ const renderMasterListItem = ({ item }) => (
 // ----------------------------
 // JSX RETURN
 return (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>Manager Dashboard</Text>
-      <TouchableOpacity
-        style={styles.settingsButton}
-        onPress={() => setSettingsModalVisible(true)}
-      >
-        <Text style={styles.settingsButtonText}>⚙️</Text>
-      </TouchableOpacity>
-    </View>
+  <View style={styles.header}>
+  <TouchableOpacity
+    style={styles.backButton}
+    onPress={() => navigation.goBack()}
+  >
+    <Text style={styles.backButtonText}>←</Text>
+  </TouchableOpacity>
+  <Text style={styles.headerTitle}>Manager Dashboard</Text>
+  <TouchableOpacity
+    style={styles.settingsButton}
+    onPress={() => setSettingsModalVisible(true)}
+  >
+    <Text style={styles.settingsButtonText}>⚙️</Text>
+  </TouchableOpacity>
+</View>
 
     {/* Tab Navigation */}
     <View style={styles.tabContainer}>
@@ -1514,6 +1519,16 @@ const styles = StyleSheet.create({
   },
   settingsButtonText: {
     fontSize: 24,
+  },
+    backButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   tabContainer: {
     flexDirection: 'row',
