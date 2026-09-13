@@ -20,7 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native';
 
 
-export default function ManagerApp() {
+export default function ManagerApp({ navigation }) {
   const [bandId, setBandId] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [confirmedRequests, setConfirmedRequests] = useState([]);
