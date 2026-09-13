@@ -51,9 +51,17 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
   return (
     <View style={styles.headerWrapper}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          {/* Left Column - Back Button */}
+       <View style={styles.header}>
+          {/* Left Column - Tip Spittoon */}
           <View style={styles.leftColumn}>
+            {enableTips && (
+              <View style={styles.spittoonWrapper}>
+                <SpittoonTip onPress={onTipPress} size={44} />
+                <Text style={styles.tipLabel} numberOfLines={2}>
+                  Tips{'\n'}Appreciated
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Center Column - Logo */}
@@ -72,19 +80,8 @@ export default function Header({ bandName, logoUrl, queueCount, onQueuePress, on
             )}
           </View>
 
-          {/* Right Column - Spittoon AND Queue side by side */}
+          {/* Right Column - Queue */}
           <View style={styles.rightColumn}>
-            {/* Tip Spittoon */}
-            {enableTips && (
-              <View style={styles.spittoonWrapper}>
-                <SpittoonTip onPress={onTipPress} size={44} />
-              </View>
-            )}
-
-            {/* Gap between buttons */}
-            <View style={styles.buttonGap} />
-
-            {/* Queue Button */}
             {onQueuePress && (
               <TouchableOpacity
                 style={styles.queueButton}
@@ -120,11 +117,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  // Left Column
+   // Left Column
   leftColumn: {
-    width: 70,
+    width: 78,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   backButton: {
     backgroundColor: '#fff',
@@ -154,19 +151,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Right Column - Spittoon and Queue SIDE BY SIDE
+   // Right Column - Queue only
   rightColumn: {
-    flexDirection: 'row',           // Side by side!
     alignItems: 'center',
     justifyContent: 'flex-end',
-    width: 130,                     // Wider to fit both
+    width: 90,
   },
   spittoonWrapper: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonGap: {
-    width: 10,                      // Gap between spittoon and queue button
+  tipLabel: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 2,
+    lineHeight: 12,
   },
   queueButton: {
     backgroundColor: '#fff',
