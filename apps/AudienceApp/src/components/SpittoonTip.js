@@ -218,7 +218,7 @@ export default function SpittoonTip({ onPress, size = 112 }) {
             <SvgText
               x="70.5"
               y="91.5"
-              fontSize="18"
+              fontSize="24"
               fontWeight="700"
               textAnchor="middle"
               fill="#3A2A1A"
@@ -231,7 +231,7 @@ export default function SpittoonTip({ onPress, size = 112 }) {
             <SvgText
               x="70"
               y="91"
-              fontSize="18"
+              fontSize="24"
               fontWeight="700"
               textAnchor="middle"
               fill="#5A3E28"
