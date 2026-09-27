@@ -1,4 +1,3 @@
-
 // BandLeaderApp.js
 import React, { useState, useEffect } from 'react';
 import {
@@ -248,20 +247,20 @@ if (!bandId) {
 
   return (
     <View style={styles.container}>
-     <View style={styles.header}>
-  <TouchableOpacity
-    style={styles.backButton}
-    onPress={() => navigation.goBack()}
-  >
-    <Text style={styles.backButtonText}>←</Text>
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>🎤 Band Leader</Text>
-  <View style={styles.headerStats}>
-    <Text style={styles.statsText}>
-      {settings.requestMode === 'vote' ? `Top ${confirmedRequests.length} 🗳️` : `Queue: ${confirmedRequests.length}`}
-    </Text>
-  </View>
-</View>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>🎤 Band Leader</Text>
+        <View style={styles.headerStats}>
+          <Text style={styles.statsText}>
+  {settings.requestMode === 'vote' ? `Top ${confirmedRequests.length} 🗳️` : `Queue: ${confirmedRequests.length}`}
+</Text>
+        </View>
+      </View>
 
       {confirmedRequests.length > 0 && (
         <View style={styles.summaryBar}>
@@ -321,7 +320,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-    backButton: {
+  statsText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  backButton: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     padding: 10,
     borderRadius: 8,
@@ -329,11 +333,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 24,
     color: '#fff',
-    fontWeight: 'bold',
-  },
-  statsText: {
-    color: '#fff',
-    fontSize: 14,
     fontWeight: 'bold',
   },
   summaryBar: {
