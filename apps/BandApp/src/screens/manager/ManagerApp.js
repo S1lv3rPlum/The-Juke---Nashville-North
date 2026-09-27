@@ -933,6 +933,12 @@ const renderMasterListItem = ({ item }) => (
 return (
   <View style={styles.container}>
     <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.backButtonText}>←</Text>
+      </TouchableOpacity>
       <Text style={styles.headerTitle}>Manager Dashboard</Text>
       <TouchableOpacity
         style={styles.settingsButton}
@@ -1514,6 +1520,16 @@ const styles = StyleSheet.create({
   },
   settingsButtonText: {
     fontSize: 24,
+  },
+  backButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   tabContainer: {
     flexDirection: 'row',
